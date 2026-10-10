@@ -1,6 +1,6 @@
 <script setup>
 // src/views/ForgotPassword.vue
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { db } from '../stores/db.js'
 import { resetPassword } from '../services/authService.js'
@@ -8,7 +8,7 @@ import { getPasswordRules } from '../utils/validators.js'
 import { showToast } from '../utils/toast.js'
 import BaseInput from '../components/common/BaseInput.vue'
 import BaseButton from '../components/common/BaseButton.vue'
-import { Hotel, Check, X, ShieldCheck, ArrowLeft } from '@lucide/vue'
+import { ShieldCheck, ArrowLeft, Check, X, AlertCircle } from '@lucide/vue'
 import screenBg from '../../docs/ui-specs/screen.png'
 
 const router = useRouter()
@@ -16,8 +16,12 @@ const step = ref(1) // 1=email, 2=pin, 3=newpwd
 const email = ref('')
 const emailError = ref('')
 const mockPin = ref('')
-const pin = ref('')
+
+const pinDigits = ref(['', '', '', '', '', ''])
+const digitRefs = ref([])
+const wrongIndices = ref([])
 const pinError = ref('')
+
 const newPwd = ref('')
 const confirmPwd = ref('')
 const pwdError = ref('')
@@ -33,11 +37,87 @@ function doSendPin() {
   emailError.value = ''
   mockPin.value = String(Math.floor(100000 + Math.random() * 900000))
   showToast(`PIN จำลอง: ${mockPin.value}`, 'info', 10000)
+
+  pinDigits.value = ['', '', '', '', '', '']
+  wrongIndices.value = []
+  pinError.value = ''
   step.value = 2
+
+  nextTick(() => {
+    digitRefs.value[0]?.focus()
+  })
+}
+
+function onDigitInput(idx, event) {
+  const inputVal = event.target.value.replace(/\D/g, '')
+  pinDigits.value[idx] = inputVal ? inputVal.slice(-1) : ''
+
+  // Clear error state for this digit when user changes it
+  if (wrongIndices.value.includes(idx)) {
+    wrongIndices.value = wrongIndices.value.filter(i => i !== idx)
+  }
+  if (wrongIndices.value.length === 0) {
+    pinError.value = ''
+  }
+
+  if (pinDigits.value[idx] && idx < 5) {
+    digitRefs.value[idx + 1]?.focus()
+  }
+}
+
+function onDigitKeyDown(idx, event) {
+  if (event.key === 'Backspace') {
+    if (!pinDigits.value[idx] && idx > 0) {
+      digitRefs.value[idx - 1]?.focus()
+    } else {
+      pinDigits.value[idx] = ''
+    }
+  } else if (event.key === 'ArrowLeft' && idx > 0) {
+    digitRefs.value[idx - 1]?.focus()
+  } else if (event.key === 'ArrowRight' && idx < 5) {
+    digitRefs.value[idx + 1]?.focus()
+  }
+}
+
+function onDigitPaste(event) {
+  event.preventDefault()
+  const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+  if (!pasted) return
+
+  const chars = pasted.split('')
+  for (let i = 0; i < 6; i++) {
+    pinDigits.value[i] = chars[i] || ''
+  }
+  wrongIndices.value = []
+  pinError.value = ''
+
+  const focusIdx = Math.min(pasted.length, 5)
+  digitRefs.value[focusIdx]?.focus()
 }
 
 function doVerifyPin() {
-  if (pin.value !== mockPin.value) { pinError.value = 'PIN ไม่ถูกต้อง'; return }
+  const enteredPin = pinDigits.value.join('')
+
+  if (enteredPin.length < 6) {
+    pinError.value = 'กรุณากรอกรหัส PIN ให้ครบ 6 หลัก'
+    return
+  }
+
+  const wrongList = []
+  for (let i = 0; i < 6; i++) {
+    if (pinDigits.value[i] !== mockPin.value[i]) {
+      wrongList.push(i)
+    }
+  }
+
+  if (wrongList.length > 0) {
+    wrongIndices.value = wrongList
+    const posNumbers = wrongList.map(i => i + 1).join(', ')
+    pinError.value = `รหัส PIN ไม่ถูกต้อง: ตำแหน่งที่ ${posNumbers} ไม่ถูกต้อง`
+    return
+  }
+
+  wrongIndices.value = []
   pinError.value = ''
   step.value = 3
 }
@@ -69,7 +149,7 @@ async function doReset() {
     <div class="relative z-10 w-full max-w-[460px] my-auto">
       <div class="bg-white/95 backdrop-blur-md rounded-3xl border border-white/60 p-6 sm:p-8 shadow-2xl">
         <div class="flex flex-col items-center text-center mb-6">
-          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-12 w-auto object-contain mb-3" />
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-20 w-auto object-contain mb-3" />
           <h1 class="font-display font-semibold text-2xl text-ink">ลืมรหัสผ่านใช่หรือไม่?</h1>
           <p class="text-xs sm:text-sm text-ink-muted mt-1">
             ระบุอีเมลที่คุณใช้ลงทะเบียนเพื่อรับรหัสยืนยัน PIN 6 หลักสำหรับตั้งรหัสผ่านใหม่
@@ -105,12 +185,50 @@ async function doReset() {
           </RouterLink>
         </form>
 
-        <!-- Step 2: PIN -->
-        <form v-else-if="step === 2" @submit.prevent="doVerifyPin" class="flex flex-col gap-4">
-          <p class="text-sm text-ink-muted text-center">กรอก PIN 6 หลักที่แสดงในการแจ้งเตือนสำหรับ <b>{{ email }}</b></p>
-          <BaseInput label="PIN 6 หลัก" v-model="pin" placeholder="000000" maxlength="6" :error="pinError" required class="text-center font-mono text-lg tracking-widest" />
-          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ยืนยัน PIN →</BaseButton>
-          <button type="button" @click="step = 1" class="text-center text-xs text-ink-muted hover:text-ink">
+        <!-- Step 2: PIN (6 separate boxes) -->
+        <form v-else-if="step === 2" @submit.prevent="doVerifyPin" class="flex flex-col gap-5">
+          <div class="text-center">
+            <p class="text-sm text-ink-muted">กรอก PIN 6 หลักที่แสดงในการแจ้งเตือนสำหรับ</p>
+            <p class="text-sm font-semibold text-slate-800 break-all mt-0.5">{{ email }}</p>
+          </div>
+
+          <div>
+            <label class="block text-center text-xs font-semibold text-slate-600 mb-2">
+              PIN 6 หลัก <span class="text-rose-500">*</span>
+            </label>
+            <div class="flex items-center justify-center gap-2 sm:gap-2.5">
+              <input
+                v-for="(digit, idx) in pinDigits"
+                :key="idx"
+                :ref="el => { if (el) digitRefs[idx] = el }"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="1"
+                v-model="pinDigits[idx]"
+                @input="onDigitInput(idx, $event)"
+                @keydown="onDigitKeyDown(idx, $event)"
+                @paste="onDigitPaste"
+                @focus="$event.target.select()"
+                :class="[
+                  'w-11 h-14 sm:w-13 sm:h-16 text-center text-2xl font-bold font-mono rounded-xl border-2 transition-all duration-200 outline-none shadow-sm',
+                  wrongIndices.includes(idx)
+                    ? 'border-rose-500 bg-rose-50/80 text-rose-900 focus:border-rose-600 focus:ring-4 focus:ring-rose-500/20'
+                    : 'border-slate-200 bg-white text-slate-900 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/20 hover:border-slate-300'
+                ]"
+              />
+            </div>
+            
+            <!-- Error notification message -->
+            <div v-if="pinError" class="mt-3 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 text-center">
+              <AlertCircle class="w-4 h-4 shrink-0" />
+              <span>{{ pinError }}</span>
+            </div>
+          </div>
+
+          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-1">ยืนยัน PIN →</BaseButton>
+
+          <button type="button" @click="step = 1" class="text-center text-xs text-indigo-600 hover:text-indigo-800 font-medium">
             เปลี่ยนอีเมล
           </button>
         </form>
@@ -148,4 +266,5 @@ async function doReset() {
     </footer>
   </div>
 </template>
+
 

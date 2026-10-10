@@ -146,7 +146,6 @@ async function handleAddManager() {
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-display font-bold text-2xl md:text-3xl text-ink">กำหนดสิทธิ์ผู้จัดการโรงแรม (Manager Permissions)</h1>
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">Manager Only</span>
           </div>
           <p class="text-sm text-ink-muted mt-1">
             กำหนดและให้สิทธิ์การ Login เข้าใช้งานสำหรับบัญชีผู้จัดการโรงแรม (หากไม่มีสิทธิ์ ระบบจะแจ้งเตือนทันทีเมื่อเข้าสู่ระบบ)

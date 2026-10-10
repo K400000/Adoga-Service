@@ -344,10 +344,6 @@ const ROLES = [
         <div v-else>
           <!-- Step 1 -->
           <form v-if="step === 1" @submit.prevent="goStep2" class="flex flex-col gap-3.5">
-            <div class="flex items-center justify-between text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg">
-              <span>ขั้นตอนที่ 1/2 — ข้อมูลบัญชีผู้ใช้</span>
-              <span class="text-slate-400">50%</span>
-            </div>
 
             <!-- Google mock button -->
             <button
@@ -363,6 +359,11 @@ const ROLES = [
               </svg>
               <span>เข้าสู่ระบบ / สมัครด้วยบัญชี Google</span>
             </button>
+          <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-slate-200"></div>
+            <span class="flex-shrink mx-3 text-xs text-ink-muted">หรือ</span>
+            <div class="flex-grow border-t border-slate-200"></div>
+          </div>
 
             <div class="flex gap-2">
               <BaseInput label="ชื่อ" v-model="regFirstName" placeholder="ชื่อ" required :error="regErrors.firstName" class="flex-1" />
