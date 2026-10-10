@@ -1,6 +1,6 @@
 <script setup>
 // src/views/HotelDetail.vue
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
@@ -8,7 +8,7 @@ import { formatPrice, formatDate } from '../utils/date.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
-import { MapPin, Star, ChevronLeft, MessageCircle, Info, BedDouble, Sparkles } from '@lucide/vue'
+import { MapPin, Star, ChevronLeft, ChevronRight, MessageCircle, Info, BedDouble, Sparkles, X, Images } from '@lucide/vue'
 import { FALLBACK_IMAGE } from '../constants/images.js'
 
 const route = useRoute()
@@ -36,7 +36,6 @@ const amenityIcon = {
   'หาดส่วนตัว': '🏖️', 'สวนสวย': '🌿',
 }
 
-const selectedImg = ref(0)
 const activeTab = ref('info')
 const TABS = [
   { key: 'info', label: 'ข้อมูลทั่วไป', icon: Info },
@@ -44,6 +43,46 @@ const TABS = [
   { key: 'amenities', label: 'สิ่งอำนวยความสะดวก', icon: Sparkles },
   { key: 'reviews', label: 'รีวิวผู้เข้าพัก', icon: Star },
 ]
+
+// Gallery Modal state
+const showGalleryModal = ref(false)
+const activeModalImgIndex = ref(0)
+
+function openGallery(index = 0) {
+  activeModalImgIndex.value = index
+  showGalleryModal.value = true
+}
+
+function closeGallery() {
+  showGalleryModal.value = false
+}
+
+function prevGalleryImg() {
+  if (!hotel.value?.images?.length) return
+  const len = hotel.value.images.length
+  activeModalImgIndex.value = (activeModalImgIndex.value - 1 + len) % len
+}
+
+function nextGalleryImg() {
+  if (!hotel.value?.images?.length) return
+  const len = hotel.value.images.length
+  activeModalImgIndex.value = (activeModalImgIndex.value + 1) % len
+}
+
+function handleKeyDown(e) {
+  if (!showGalleryModal.value) return
+  if (e.key === 'ArrowLeft') prevGalleryImg()
+  if (e.key === 'ArrowRight') nextGalleryImg()
+  if (e.key === 'Escape') closeGallery()
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
 
 function scrollToSection(key) {
   activeTab.value = key
@@ -115,24 +154,65 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
         </div>
       </div>
 
-      <!-- Gallery 8+4 -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-8 rounded-3xl overflow-hidden h-80 md:h-96">
-        <div class="lg:col-span-8 overflow-hidden">
+      <!-- Gallery Grid (1 Main + 2 Side thumbnails) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 mb-8 rounded-3xl overflow-hidden h-80 md:h-[420px] bg-white p-1.5 shadow-xs border border-slate-200/80">
+        <!-- Main Large Image (Index 0) -->
+        <div
+          @click="openGallery(0)"
+          class="lg:col-span-8 relative overflow-hidden cursor-pointer group rounded-2xl h-full"
+        >
           <img
-            :src="hotel.images?.[selectedImg] || FALLBACK_IMAGE"
+            :src="hotel.images?.[0] || FALLBACK_IMAGE"
             :alt="hotel.name"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
             loading="lazy"
           />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+            <span class="text-xs text-white bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-medium shadow-sm border border-white/20">
+              <Images class="w-3.5 h-3.5 text-indigo-400" />
+              คลิกเพื่อดูรูปภาพทั้งหมด ({{ hotel.images?.length || 0 }})
+            </span>
+          </div>
         </div>
-        <div class="hidden lg:grid lg:col-span-4 grid-rows-2 gap-3">
+
+        <!-- Right Side Stack (Index 1 & Index 2 overlay) -->
+        <div class="hidden lg:flex lg:flex-col lg:col-span-4 gap-2.5 h-full min-h-0">
+          <!-- Image 2 (Index 1) -->
           <div
-            v-for="(img, i) in hotel.images?.slice(0, 2)"
-            :key="i"
-            @click="selectedImg = i"
-            class="overflow-hidden cursor-pointer rounded-xl"
+            @click="openGallery(1)"
+            class="flex-1 min-h-0 relative overflow-hidden cursor-pointer rounded-2xl group"
           >
-            <img :src="img" :alt="`${hotel.name} ${i+1}`" class="w-full h-full object-cover hover:opacity-90 transition-opacity" loading="lazy" />
+            <img
+              :src="hotel.images?.[1] || FALLBACK_IMAGE"
+              :alt="`${hotel.name} 2`"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          </div>
+
+          <!-- Image 3 (Index 2) with Blur + Count Overlay if >= 3 -->
+          <div
+            @click="openGallery(2)"
+            class="flex-1 min-h-0 relative overflow-hidden cursor-pointer rounded-2xl group"
+          >
+            <img
+              :src="hotel.images?.[2] || hotel.images?.[1] || FALLBACK_IMAGE"
+              :alt="`${hotel.name} 3`"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+            
+            <!-- Overlay for remaining photos (+N) -->
+            <div
+              v-if="hotel.images && hotel.images.length >= 3"
+              class="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center text-white transition-all group-hover:bg-slate-950/70"
+            >
+              <span class="font-display font-extrabold text-3xl sm:text-4xl tracking-tight text-white drop-shadow-md">+{{ hotel.images.length - 2 }}</span>
+              <span class="text-xs font-semibold text-slate-100 mt-1 flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30 shadow-xs">
+                <Images class="w-3.5 h-3.5 text-amber-300" />
+                รูปภาพทั้งหมด ({{ hotel.images.length }})
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -344,6 +424,75 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
         </div>
       </div>
     </div>
+
+    <!-- Fullscreen Gallery Lightbox Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showGalleryModal"
+        class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 select-none animate-fadeIn"
+      >
+        <!-- Modal Header / Top Bar -->
+        <div class="flex items-center justify-between z-10">
+          <div>
+            <h3 class="text-white font-display font-semibold text-lg sm:text-xl">{{ hotel.name }}</h3>
+            <p class="text-xs text-slate-400">รูปภาพที่ {{ activeModalImgIndex + 1 }} จาก {{ hotel.images?.length || 0 }}</p>
+          </div>
+          <button
+            @click="closeGallery"
+            type="button"
+            class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Center Image View with Next/Prev Controls -->
+        <div class="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
+          <!-- Previous Button -->
+          <button
+            @click="prevGalleryImg"
+            type="button"
+            class="absolute left-2 sm:left-6 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md hover:scale-110 active:scale-95 shadow-lg"
+          >
+            <ChevronLeft class="w-6 h-6" :stroke-width="2.5" />
+          </button>
+
+          <!-- Current Image -->
+          <img
+            :src="hotel.images?.[activeModalImgIndex] || FALLBACK_IMAGE"
+            :alt="`${hotel.name} ${activeModalImgIndex + 1}`"
+            class="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl transition-transform duration-200"
+          />
+
+          <!-- Next Button -->
+          <button
+            @click="nextGalleryImg"
+            type="button"
+            class="absolute right-2 sm:right-6 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md hover:scale-110 active:scale-95 shadow-lg"
+          >
+            <ChevronRight class="w-6 h-6" :stroke-width="2.5" />
+          </button>
+        </div>
+
+        <!-- Bottom Thumbnails Strip -->
+        <div class="flex items-center justify-center gap-2 overflow-x-auto py-2 px-4 max-w-full">
+          <button
+            v-for="(img, idx) in hotel.images"
+            :key="idx"
+            @click="activeModalImgIndex = idx"
+            :class="[
+              'w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 transition-all cursor-pointer border-2',
+              activeModalImgIndex === idx
+                ? 'border-indigo-500 scale-110 shadow-lg opacity-100 ring-2 ring-indigo-400/50'
+                : 'border-transparent opacity-50 hover:opacity-90'
+            ]"
+          >
+            <img :src="img" :alt="`thumb ${idx}`" class="w-full h-full object-cover" />
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
     <Footer />
   </div>
 </template>

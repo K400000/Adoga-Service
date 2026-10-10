@@ -2,8 +2,9 @@
 import { set, get } from '../utils/storage.js'
 import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
+import { db } from '../stores/db.js'
 
-const VERSION = 3
+const VERSION = 5
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -35,8 +36,12 @@ export function runSeed(force = false) {
       pricePerNight: 1500, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H001, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'อาหารเช้า', 'ที่จอดรถ'], rating: 4.6,
       rooms: [
-        mkRoom('H001-R1', 'Standard Sea View', 1500, 2, [mkUnit('101','available'), mkUnit('102','booked'), mkUnit('103','maintenance')]),
-        mkRoom('H001-R2', 'Family Ocean Suite', 2800, 4, [mkUnit('201','available'), mkUnit('202','available')]),
+        mkRoom('H001-R1', 'Standard Sea View', 1500, 2, [mkUnit('101','available'), mkUnit('102','booked'), mkUnit('103','maintenance'), mkUnit('104','available'), mkUnit('105','available')]),
+        mkRoom('H001-R2', 'Family Ocean Suite', 2800, 4, [mkUnit('201','available'), mkUnit('202','available'), mkUnit('203','booked'), mkUnit('204','available')]),
+        mkRoom('H001-R3', 'Deluxe Pool Access', 2100, 2, [mkUnit('106','available'), mkUnit('107','available'), mkUnit('108','booked')]),
+        mkRoom('H001-R4', 'Superior Beachfront Studio', 1850, 2, [mkUnit('205','available'), mkUnit('206','available')]),
+        mkRoom('H001-R5', 'Executive Panorama King', 3200, 3, [mkUnit('301','available'), mkUnit('302','available')]),
+        mkRoom('H001-R6', 'Presidential Seaside Villa', 5500, 6, [mkUnit('401','available'), mkUnit('402','available')]),
       ],
     },
     {
@@ -45,8 +50,12 @@ export function runSeed(force = false) {
       pricePerNight: 2200, discount: 15, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H002, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'สปา', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.4,
       rooms: [
-        mkRoom('H002-R1', 'Deluxe Pool View', 2200, 2, [mkUnit('301','available'), mkUnit('302','booked')]),
-        mkRoom('H002-R2', 'Premium Oceanfront Suite', 4500, 4, [mkUnit('401','available'), mkUnit('402','booked')]),
+        mkRoom('H002-R1', 'Deluxe Pool View', 2200, 2, [mkUnit('301','available'), mkUnit('302','booked'), mkUnit('303','available'), mkUnit('304','available')]),
+        mkRoom('H002-R2', 'Premium Oceanfront Suite', 4500, 4, [mkUnit('401','available'), mkUnit('402','booked'), mkUnit('403','available')]),
+        mkRoom('H002-R3', 'Superior City View', 1800, 2, [mkUnit('201','available'), mkUnit('202','available'), mkUnit('203','available')]),
+        mkRoom('H002-R4', 'Executive Club Room', 3100, 2, [mkUnit('501','available'), mkUnit('502','available')]),
+        mkRoom('H002-R5', 'Spa Suite with Jacuzzi', 3800, 2, [mkUnit('601','available'), mkUnit('602','booked')]),
+        mkRoom('H002-R6', 'Family Penthouse Suite', 6800, 6, [mkUnit('701','available')]),
       ],
     },
     {
@@ -56,7 +65,11 @@ export function runSeed(force = false) {
       images: HOTEL_IMAGES.H003, amenities: ['สระว่ายน้ำน้ำอุ่น', 'WiFi ฟรี', 'สปาและออนเซ็น', 'อาหารเช้าออร์แกนิก', 'ที่จอดรถ'], rating: 4.9,
       rooms: [
         mkRoom('H003-R1', 'Lanna Mountain Suite', 2800, 2, [mkUnit('501','available'), mkUnit('502','booked'), mkUnit('503','available')]),
-        mkRoom('H003-R2', 'Villa Valley View', 4800, 4, [mkUnit('601','available'), mkUnit('602','available')]),
+        mkRoom('H003-R2', 'Villa Valley View', 4800, 4, [mkUnit('601','available'), mkUnit('602','available'), mkUnit('603','available')]),
+        mkRoom('H003-R3', 'Onsen Terrace Cottage', 3500, 2, [mkUnit('504','available'), mkUnit('505','available')]),
+        mkRoom('H003-R4', 'Superior Pine Forest', 2200, 2, [mkUnit('401','available'), mkUnit('402','available'), mkUnit('403','booked')]),
+        mkRoom('H003-R5', 'Deluxe Mist View Room', 3100, 3, [mkUnit('506','available'), mkUnit('507','available')]),
+        mkRoom('H003-R6', 'Family Mountain Chalet', 5900, 5, [mkUnit('701','available'), mkUnit('702','available')]),
       ],
     },
     {
@@ -65,8 +78,12 @@ export function runSeed(force = false) {
       pricePerNight: 1650, discount: 5, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H004, amenities: ['WiFi ความเร็วสูง', 'คาเฟ่ & บาร์', 'ฟิตเนส', 'ที่จอดรถ', 'บริการรับส่งสนามบิน'], rating: 4.5,
       rooms: [
-        mkRoom('H004-R1', 'Urban Minimalist Room', 1650, 2, [mkUnit('701','available'), mkUnit('702','available')]),
-        mkRoom('H004-R2', 'Duplex Loft Suite', 2900, 3, [mkUnit('801','available')]),
+        mkRoom('H004-R1', 'Urban Minimalist Room', 1650, 2, [mkUnit('701','available'), mkUnit('702','available'), mkUnit('703','available')]),
+        mkRoom('H004-R2', 'Duplex Loft Suite', 2900, 3, [mkUnit('801','available'), mkUnit('802','available')]),
+        mkRoom('H004-R3', 'Studio Balcony King', 1950, 2, [mkUnit('704','available'), mkUnit('705','available')]),
+        mkRoom('H004-R4', 'Executive Corner Suite', 3400, 2, [mkUnit('803','available'), mkUnit('804','booked')]),
+        mkRoom('H004-R5', 'Co-Working Suite', 2400, 2, [mkUnit('706','available'), mkUnit('707','available')]),
+        mkRoom('H004-R6', 'Penthouse City View', 4200, 4, [mkUnit('901','available')]),
       ],
     },
     {
@@ -75,8 +92,12 @@ export function runSeed(force = false) {
       pricePerNight: 4900, discount: 12, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H005, amenities: ['สระว่ายน้ำส่วนตัว Infinite Pool', 'บริการบัตเลอร์ 24 ชม.', 'ฟิตเนส & สปา', 'บาร์ริมทะเล', 'อาหารเช้าลอยน้ำ'], rating: 4.9,
       rooms: [
-        mkRoom('H005-R1', 'Oceanfront Pool Villa', 4900, 2, [mkUnit('901','available'), mkUnit('902','booked')]),
-        mkRoom('H005-R2', 'Grand Cliff Top Villa', 8500, 6, [mkUnit('1001','available')]),
+        mkRoom('H005-R1', 'Oceanfront Pool Villa', 4900, 2, [mkUnit('901','available'), mkUnit('902','booked'), mkUnit('903','available')]),
+        mkRoom('H005-R2', 'Grand Cliff Top Villa', 8500, 6, [mkUnit('1001','available'), mkUnit('1002','available')]),
+        mkRoom('H005-R3', 'Sunset Horizon Suite', 6200, 2, [mkUnit('904','available'), mkUnit('905','available')]),
+        mkRoom('H005-R4', 'Royal Infinity Pool Villa', 12000, 4, [mkUnit('1003','available')]),
+        mkRoom('H005-R5', 'Deluxe Cliffside Suite', 5400, 2, [mkUnit('906','available'), mkUnit('907','booked')]),
+        mkRoom('H005-R6', 'Two-Bedroom Family Villa', 9800, 5, [mkUnit('1004','available')]),
       ],
     },
     {
@@ -86,7 +107,11 @@ export function runSeed(force = false) {
       images: HOTEL_IMAGES.H006, amenities: ['สระว่ายน้ำดาดฟ้า', 'WiFi ฟรี', 'ห้องอาหารนานาชาติ', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.2,
       rooms: [
         mkRoom('H006-R1', 'Superior City View', 1350, 2, [mkUnit('1101','available'), mkUnit('1102','available'), mkUnit('1103','booked')]),
-        mkRoom('H006-R2', 'Deluxe Balcony Room', 1950, 2, [mkUnit('1201','available'), mkUnit('1202','available')]),
+        mkRoom('H006-R2', 'Deluxe Balcony Room', 1950, 2, [mkUnit('1201','available'), mkUnit('1202','available'), mkUnit('1203','available')]),
+        mkRoom('H006-R3', 'Rooftop Pool Suite', 2600, 2, [mkUnit('1301','available'), mkUnit('1302','available')]),
+        mkRoom('H006-R4', 'Standard Twin Room', 1200, 2, [mkUnit('1104','available'), mkUnit('1105','available')]),
+        mkRoom('H006-R5', 'Executive Studio', 2200, 3, [mkUnit('1204','available'), mkUnit('1205','available')]),
+        mkRoom('H006-R6', 'Family Connecting Room', 3500, 4, [mkUnit('1401','available'), mkUnit('1402','booked')]),
       ],
     },
     {
@@ -95,8 +120,12 @@ export function runSeed(force = false) {
       pricePerNight: 3200, discount: 15, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H007, amenities: ['สระว่ายน้ำติดชายหาด', 'เรือคายัคฟรี', 'คิดส์คลับ', 'สปาครบวงจร', 'บาร์ค็อกเทล'], rating: 4.8,
       rooms: [
-        mkRoom('H007-R1', 'Emerald Deluxe Room', 3200, 2, [mkUnit('1301','available'), mkUnit('1302','booked')]),
-        mkRoom('H007-R2', 'Cliffside Beachfront Villa', 5400, 4, [mkUnit('1401','available')]),
+        mkRoom('H007-R1', 'Emerald Deluxe Room', 3200, 2, [mkUnit('1301','available'), mkUnit('1302','booked'), mkUnit('1303','available')]),
+        mkRoom('H007-R2', 'Cliffside Beachfront Villa', 5400, 4, [mkUnit('1401','available'), mkUnit('1402','available')]),
+        mkRoom('H007-R3', 'Sea Breeze Bungalow', 2800, 2, [mkUnit('1304','available'), mkUnit('1305','available')]),
+        mkRoom('H007-R4', 'Lagoon Access Room', 3900, 2, [mkUnit('1306','available'), mkUnit('1307','booked')]),
+        mkRoom('H007-R5', 'Grand Island Suite', 6500, 4, [mkUnit('1501','available')]),
+        mkRoom('H007-R6', 'Honeymoon Ocean Villa', 7200, 2, [mkUnit('1502','available')]),
       ],
     },
     {
@@ -105,8 +134,12 @@ export function runSeed(force = false) {
       pricePerNight: 2600, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H008, amenities: ['สระว่ายน้ำริมหาด', 'สปาไทย', 'อาหารเช้าซีฟู้ด', 'ที่จอดรถ', 'สวนหย่อมสไตล์อังกฤษ'], rating: 4.6,
       rooms: [
-        mkRoom('H008-R1', 'Colonial Heritage Room', 2600, 2, [mkUnit('1501','available'), mkUnit('1502','available')]),
-        mkRoom('H008-R2', 'Pool Access Suite', 3900, 2, [mkUnit('1601','available'), mkUnit('1602','booked')]),
+        mkRoom('H008-R1', 'Colonial Heritage Room', 2600, 2, [mkUnit('1501','available'), mkUnit('1502','available'), mkUnit('1503','available')]),
+        mkRoom('H008-R2', 'Pool Access Suite', 3900, 2, [mkUnit('1601','available'), mkUnit('1602','booked'), mkUnit('1603','available')]),
+        mkRoom('H008-R3', 'Garden Villa', 3100, 2, [mkUnit('1504','available'), mkUnit('1505','available')]),
+        mkRoom('H008-R4', 'Superior Courtyard', 2200, 2, [mkUnit('1506','available'), mkUnit('1507','available')]),
+        mkRoom('H008-R5', 'Oceanfront Family Suite', 5200, 4, [mkUnit('1604','available')]),
+        mkRoom('H008-R6', 'Royal Heritage Pavilion', 7800, 6, [mkUnit('1701','available')]),
       ],
     },
     {
@@ -115,8 +148,12 @@ export function runSeed(force = false) {
       pricePerNight: 3800, discount: 18, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H009, amenities: ['สระว่ายน้ำลากูน', 'โยคะริมหาด', 'WiFi ฟรี', 'Beach Club', 'สปาอโรมา'], rating: 4.8,
       rooms: [
-        mkRoom('H009-R1', 'Tropical Garden Bungalow', 3800, 2, [mkUnit('1701','available'), mkUnit('1702','available')]),
-        mkRoom('H009-R2', 'Beachfront Ocean Villa', 6200, 2, [mkUnit('1801','available')]),
+        mkRoom('H009-R1', 'Tropical Garden Bungalow', 3800, 2, [mkUnit('1701','available'), mkUnit('1702','available'), mkUnit('1703','available')]),
+        mkRoom('H009-R2', 'Beachfront Ocean Villa', 6200, 2, [mkUnit('1801','available'), mkUnit('1802','available')]),
+        mkRoom('H009-R3', 'Lagoon Pool Suite', 4500, 2, [mkUnit('1704','available'), mkUnit('1705','available')]),
+        mkRoom('H009-R4', 'Sanctuary Wellness Cottage', 4100, 2, [mkUnit('1706','available')]),
+        mkRoom('H009-R5', 'Deluxe Coconut Grove', 3200, 2, [mkUnit('1707','available'), mkUnit('1708','booked')]),
+        mkRoom('H009-R6', 'Grand Sunset Residence', 9500, 6, [mkUnit('1901','available')]),
       ],
     },
     {
@@ -125,8 +162,12 @@ export function runSeed(force = false) {
       pricePerNight: 3400, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H010, amenities: ['สระว่ายน้ำริมแม่น้ำ', 'ห้องอาหาร Fine Dining', 'Sky Rooftop Bar', 'ฟิตเนส & ซาวน่า', 'เรือข้ามฟากส่วนตัว'], rating: 4.7,
       rooms: [
-        mkRoom('H010-R1', 'Riverview Executive Room', 3400, 2, [mkUnit('1901','available'), mkUnit('1902','booked')]),
-        mkRoom('H010-R2', 'Chao Phraya Panoramic Suite', 6800, 4, [mkUnit('2001','available')]),
+        mkRoom('H010-R1', 'Riverview Executive Room', 3400, 2, [mkUnit('1901','available'), mkUnit('1902','booked'), mkUnit('1903','available')]),
+        mkRoom('H010-R2', 'Chao Phraya Panoramic Suite', 6800, 4, [mkUnit('2001','available'), mkUnit('2002','available')]),
+        mkRoom('H010-R3', 'Deluxe City & River Corner', 2900, 2, [mkUnit('1904','available'), mkUnit('1905','available')]),
+        mkRoom('H010-R4', 'Club Level Premier', 4200, 2, [mkUnit('2003','available'), mkUnit('2004','booked')]),
+        mkRoom('H010-R5', 'Heritage Thai Suite', 5500, 3, [mkUnit('2101','available')]),
+        mkRoom('H010-R6', 'Royal Riverfront Penthouse', 14000, 6, [mkUnit('2201','available')]),
       ],
     },
     {
@@ -135,8 +176,12 @@ export function runSeed(force = false) {
       pricePerNight: 2100, discount: 8, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H011, amenities: ['แคมป์ไฟและบาร์บีคิว', 'สระว่ายน้ำกลางแจ้ง', 'จักรยานเสือภูเขาให้เช่า', 'WiFi ฟรี', 'ลานดูดาว'], rating: 4.6,
       rooms: [
-        mkRoom('H011-R1', 'Glamping Tent Suite', 2100, 2, [mkUnit('2101','available'), mkUnit('2102','available')]),
-        mkRoom('H011-R2', 'Wooden Eco Cottage', 3600, 4, [mkUnit('2201','available')]),
+        mkRoom('H011-R1', 'Glamping Tent Suite', 2100, 2, [mkUnit('2101','available'), mkUnit('2102','available'), mkUnit('2103','available')]),
+        mkRoom('H011-R2', 'Wooden Eco Cottage', 3600, 4, [mkUnit('2201','available'), mkUnit('2202','available')]),
+        mkRoom('H011-R3', 'Mountain Stargazing Tent', 2500, 2, [mkUnit('2104','available'), mkUnit('2105','available')]),
+        mkRoom('H011-R4', 'Deluxe Forest Cabin', 3100, 2, [mkUnit('2203','available'), mkUnit('2204','available')]),
+        mkRoom('H011-R5', 'Family Treehouse Chalet', 4800, 5, [mkUnit('2301','available')]),
+        mkRoom('H011-R6', 'Executive Nature Villa', 5900, 4, [mkUnit('2302','available')]),
       ],
     },
     {
@@ -145,8 +190,12 @@ export function runSeed(force = false) {
       pricePerNight: 1750, discount: 0, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H012, amenities: ['ระเบียงชมวิวทุ่งนา 360°', 'เซ็ตอาหารพื้นบ้านน่าน', 'WiFi ฟรี', 'จักรยานฟรี'], rating: 4.8,
       rooms: [
-        mkRoom('H012-R1', 'Rice Field View Room', 1750, 2, [mkUnit('2301','available'), mkUnit('2302','available')]),
-        mkRoom('H012-R2', 'Doi Phu Kha Wooden Suite', 2800, 4, [mkUnit('2401','available')]),
+        mkRoom('H012-R1', 'Rice Field View Room', 1750, 2, [mkUnit('2301','available'), mkUnit('2302','available'), mkUnit('2303','available')]),
+        mkRoom('H012-R2', 'Doi Phu Kha Wooden Suite', 2800, 4, [mkUnit('2401','available'), mkUnit('2402','available')]),
+        mkRoom('H012-R3', 'Slow Life Cottage', 1950, 2, [mkUnit('2304','available'), mkUnit('2305','available')]),
+        mkRoom('H012-R4', 'Panoramic Valley Balcony', 2300, 2, [mkUnit('2403','available'), mkUnit('2404','available')]),
+        mkRoom('H012-R5', 'Traditional Nan Teak House', 3500, 4, [mkUnit('2501','available')]),
+        mkRoom('H012-R6', 'Family Misty Terrace', 3900, 5, [mkUnit('2502','available')]),
       ],
     },
     {
@@ -155,8 +204,12 @@ export function runSeed(force = false) {
       pricePerNight: 2400, discount: 15, status: 'pending', rejectReason: null,
       images: HOTEL_IMAGES.H013, amenities: ['อุปกรณ์ดำน้ำตื้น', 'สระว่ายน้ำกลางแจ้ง', 'WiFi ฟรี', 'เรือคายัค'], rating: 4.4,
       rooms: [
-        mkRoom('H013-R1', 'Island View Deluxe', 2400, 2, [mkUnit('2501','available'), mkUnit('2502','available')]),
-        mkRoom('H013-R2', 'Sunset Sea Villa', 4200, 2, [mkUnit('2601','available')]),
+        mkRoom('H013-R1', 'Island View Deluxe', 2400, 2, [mkUnit('2501','available'), mkUnit('2502','available'), mkUnit('2503','available')]),
+        mkRoom('H013-R2', 'Sunset Sea Villa', 4200, 2, [mkUnit('2601','available'), mkUnit('2602','available')]),
+        mkRoom('H013-R3', 'Coral Beach Bungalow', 2900, 2, [mkUnit('2504','available'), mkUnit('2505','available')]),
+        mkRoom('H013-R4', 'Garden Pool Villa', 3800, 3, [mkUnit('2603','available')]),
+        mkRoom('H013-R5', 'Marine Family Suite', 4900, 4, [mkUnit('2701','available')]),
+        mkRoom('H013-R6', 'Superior Tropical Twin', 2100, 2, [mkUnit('2506','available')]),
       ],
     },
     {
@@ -165,7 +218,11 @@ export function runSeed(force = false) {
       pricePerNight: 1600, discount: 0, status: 'rejected', rejectReason: 'ข้อมูลใบอนุญาตโรงแรมไม่ครบถ้วนและภาพถ่ายไม่ชัดเจน กรุณาแก้ไข',
       images: HOTEL_IMAGES.H014, amenities: ['สระว่ายน้ำ', 'อาหารเช้า', 'ที่จอดรถ'], rating: 3.7,
       rooms: [
-        mkRoom('H014-R1', 'Coastal Deluxe Room', 1600, 2, [mkUnit('2701','available'), mkUnit('2702','available')]),
+        mkRoom('H014-R1', 'Coastal Deluxe Room', 1600, 2, [mkUnit('2701','available'), mkUnit('2702','available'), mkUnit('2703','available')]),
+        mkRoom('H014-R2', 'Sea Breeze Suite', 2400, 3, [mkUnit('2801','available'), mkUnit('2802','available')]),
+        mkRoom('H014-R3', 'Standard Twin Room', 1300, 2, [mkUnit('2704','available'), mkUnit('2705','available')]),
+        mkRoom('H014-R4', 'Family Ocean Room', 3100, 4, [mkUnit('2803','available')]),
+        mkRoom('H014-R5', 'Executive Balcony King', 2100, 2, [mkUnit('2706','available')]),
       ],
     },
     {
@@ -174,7 +231,11 @@ export function runSeed(force = false) {
       pricePerNight: 1950, discount: 0, status: 'suspended', rejectReason: null,
       images: HOTEL_IMAGES.H015, amenities: ['สระว่ายน้ำริมน้ำ', 'ร้านอาหารริมน้ำ', 'WiFi ฟรี', 'ที่จอดรถ'], rating: 4.3,
       rooms: [
-        mkRoom('H015-R1', 'Heritage River Room', 1950, 2, [mkUnit('2801','available'), mkUnit('2802','available')]),
+        mkRoom('H015-R1', 'Heritage River Room', 1950, 2, [mkUnit('2801','available'), mkUnit('2802','available'), mkUnit('2803','available')]),
+        mkRoom('H015-R2', 'Ayutthaya Grand Suite', 3200, 4, [mkUnit('2901','available'), mkUnit('2902','available')]),
+        mkRoom('H015-R3', 'Thai Classic Deluxe', 2300, 2, [mkUnit('2804','available'), mkUnit('2805','available')]),
+        mkRoom('H015-R4', 'Riverfront Balcony Suite', 2800, 2, [mkUnit('2903','available')]),
+        mkRoom('H015-R5', 'Family Heritage Residence', 4500, 5, [mkUnit('2904','available')]),
       ],
     },
   ]
@@ -279,5 +340,17 @@ export function runSeed(force = false) {
   set('adoga_settings', settings)
   set('adoga_current_session', currentSession)
   set('adoga_meta', { seeded: true, version: VERSION })
+
+  if (db) {
+    db['adoga_users'] = users
+    db['adoga_hotels'] = hotels
+    db['adoga_bookings'] = [...bookings, ...fillers]
+    db['adoga_refunds'] = refunds
+    db['adoga_reviews'] = reviews
+    db['adoga_messages'] = messages
+    db['adoga_settings'] = settings
+    db['adoga_current_session'] = currentSession
+    db['adoga_meta'] = { seeded: true, version: VERSION }
+  }
 }
 

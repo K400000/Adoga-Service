@@ -17,11 +17,22 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import { RouterLink } from 'vue-router'
-import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText } from '@lucide/vue'
+import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search } from '@lucide/vue'
 
 const { session } = useSession()
 
 const myHotels = computed(() => (db['adoga_hotels'] || []).filter(h => h.managerId === session.value?.userId))
+const searchQuery = ref('')
+
+const filteredHotels = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return myHotels.value
+  return myHotels.value.filter(h =>
+    h.name.toLowerCase().includes(query) ||
+    (h.location && h.location.toLowerCase().includes(query))
+  )
+})
+
 const allBookings = computed(() => db['adoga_bookings'] || [])
 const allRefunds = computed(() => db['adoga_refunds'] || [])
 
@@ -244,9 +255,31 @@ import Sidebar from '../components/common/Sidebar.vue'
 
         <!-- Hotels -->
         <section class="mb-8">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-display font-semibold text-xl text-ink">โรงแรมของฉัน</h2>
-            <span class="text-sm text-ink-muted">{{ myHotels.length }} แห่ง</span>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div class="flex items-center gap-3">
+              <h2 class="font-display font-semibold text-xl text-ink">โรงแรมของฉัน</h2>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                {{ filteredHotels.length }} / {{ myHotels.length }} แห่ง
+              </span>
+            </div>
+
+            <!-- Search input -->
+            <div v-if="myHotels.length" class="relative w-full sm:w-72">
+              <Search class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="ค้นหาชื่อโรงแรมหรือทำเล..."
+                class="w-full h-10 pl-9 pr-8 bg-white border border-line rounded-xl text-sm text-ink placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 transition-colors shadow-2xs"
+              />
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div v-if="!myHotels.length" class="py-12 text-center bg-white rounded-2xl border border-line">
@@ -256,8 +289,16 @@ import Sidebar from '../components/common/Sidebar.vue'
             <BaseButton @click="openAddHotel" variant="secondary" size="md">เพิ่มโรงแรม</BaseButton>
           </div>
 
+          <div v-else-if="!filteredHotels.length" class="py-12 text-center bg-white rounded-2xl border border-line">
+            <Hotel class="w-10 h-10 text-slate-300 mx-auto mb-2" :stroke-width="1.5" />
+            <p class="text-ink font-medium text-sm">ไม่พบโรงแรมที่ตรงกับ "{{ searchQuery }}"</p>
+            <button @click="searchQuery = ''" class="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">
+              ล้างคำค้นหา
+            </button>
+          </div>
+
           <div v-else class="flex flex-col gap-6">
-            <div v-for="hotel in myHotels" :key="hotel.id" class="bg-white rounded-2xl border border-line p-4 md:p-6 shadow-e1">
+            <div v-for="hotel in filteredHotels" :key="hotel.id" class="bg-white rounded-2xl border border-line p-4 md:p-6 shadow-e1">
               <StatusBanner
                 :entity="'hotel'"
                 :value="hotel.status"
