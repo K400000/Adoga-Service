@@ -93,10 +93,32 @@ const userThreads = computed(() => {
   return threads
 })
 
+function markAsRead(hotelId) {
+  if (!hotelId || !session.value?.userId) return
+  const allMessages = db['adoga_messages'] || []
+  let updated = false
+  const updatedMessages = allMessages.map(m => {
+    if (m.hotelId === hotelId && m.userId === session.value.userId && m.sender === 'manager' && m.unread) {
+      updated = true
+      return { ...m, unread: false }
+    }
+    return m
+  })
+  if (updated) {
+    db['adoga_messages'] = updatedMessages
+  }
+}
+
+function selectThread(hotelId) {
+  selectedHotelId.value = hotelId
+  markAsRead(hotelId)
+}
+
 // Default select first thread
 onMounted(() => {
   if (userThreads.value.length > 0) {
     selectedHotelId.value = userThreads.value[0].hotel.id
+    markAsRead(selectedHotelId.value)
   }
 })
 
@@ -170,7 +192,7 @@ async function sendMsg() {
             <button
               v-for="item in userThreads"
               :key="item.hotel.id"
-              @click="selectedHotelId = item.hotel.id"
+              @click="selectThread(item.hotel.id)"
               :class="[
                 'w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 border cursor-pointer group',
                 selectedHotelId === item.hotel.id

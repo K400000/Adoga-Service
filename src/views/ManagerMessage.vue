@@ -101,9 +101,31 @@ const threads = computed(() => {
   return list
 })
 
+function markAsRead(t) {
+  if (!t?.hotelId || !t?.userId) return
+  const allMessages = db['adoga_messages'] || []
+  let updated = false
+  const updatedMessages = allMessages.map(m => {
+    if (m.hotelId === t.hotelId && m.userId === t.userId && m.sender === 'user' && m.unread) {
+      updated = true
+      return { ...m, unread: false }
+    }
+    return m
+  })
+  if (updated) {
+    db['adoga_messages'] = updatedMessages
+  }
+}
+
+function selectThread(t) {
+  selectedThread.value = t
+  markAsRead(t)
+}
+
 onMounted(() => {
   if (threads.value.length > 0) {
     selectedThread.value = threads.value[0]
+    markAsRead(selectedThread.value)
   }
 })
 
@@ -170,7 +192,7 @@ async function sendMsg() {
             <button
               v-for="t in threads"
               :key="`${t.hotelId}:${t.userId}`"
-              @click="selectedThread = t"
+              @click="selectThread(t)"
               :class="[
                 'w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 border cursor-pointer group',
                 selectedThread?.hotelId === t.hotelId && selectedThread?.userId === t.userId

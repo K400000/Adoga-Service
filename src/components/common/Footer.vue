@@ -35,16 +35,16 @@ import { Hotel } from '@lucide/vue'
         <div>
           <h4 class="text-sm font-semibold text-white mb-3">ติดต่อ</h4>
           <div class="flex flex-col gap-1">
-            <a v-for="m in TEAM" :key="m.id" :href="`tel:${m.phone}`" class="text-sm text-slate-400 hover:text-white transition-colors">
-              {{ m.name }}: {{ m.phone }}
+            <a v-for="m in TEAM" :key="m.id" :href="`tel:${m.stdid}`" class="text-sm text-slate-400 hover:text-white transition-colors">
+              {{ m.name }}: {{ m.stdid }}
             </a>
           </div>
         </div>
       </div>
 
       <div class="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <p class="text-xs text-slate-500">{{ PROJECT_INFO.subject }} · สมาชิก 5 คน</p>
-        <p class="text-xs text-slate-500">© {{ PROJECT_INFO.year }} Adoga Mockup · สงวนลิขสิทธิ์ตามกฎหมาย</p>
+        <p class="text-xs text-slate-500">{{ PROJECT_INFO.subject }} · สมาชิก 4 คน</p>
+        <p class="text-xs text-slate-500">© {{ PROJECT_INFO.year }} Adoga Services · สงวนลิขสิทธิ์ตามกฎหมายบ้านใด</p>
       </div>
     </div>
   </footer>
