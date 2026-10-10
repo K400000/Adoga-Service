@@ -10,7 +10,14 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
-const sizeClass = { md: 'max-w-md', lg: 'max-w-lg' }
+const sizeClass = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-2xl',
+  '2xl': 'max-w-3xl',
+  '3xl': 'max-w-4xl',
+}
 
 function onKey(e) { if (e.key === 'Escape' && props.open) emit('close') }
 onMounted(() => document.addEventListener('keydown', onKey))
