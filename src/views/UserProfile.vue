@@ -12,9 +12,10 @@ import Footer from '../components/common/Footer.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
+import { showToast } from '../utils/toast.js'
 import {
   User, Lock, Mail, Shield, CheckCircle2,
-  Calendar, LogOut, Edit3, Clock, Phone, Cake, Send,
+  Calendar, LogOut, Edit3, Clock, Phone, Cake, Send, Star,
   FileText, Printer, Download, RotateCcw, X, BedDouble, Building, CreditCard
 } from '@lucide/vue'
 
@@ -99,6 +100,79 @@ function canRefund(b) {
   return (b.status === 'confirmed' || b.paymentStatus === 'success')
     && !b.checkedOutAt
     && !refundForBooking(b.id)
+}
+
+// Review management state & methods
+const showReviewModal = ref(false)
+const reviewBooking = ref(null)
+const reviewRating = ref(5)
+const reviewComment = ref('')
+
+function canReview(b) {
+  const isCheckedOut = b.status === 'completed' || !!b.checkedOutAt || (b.status === 'confirmed' && new Date(b.checkOut) <= new Date())
+  return isCheckedOut
+}
+
+function getReviewForBooking(bookingId) {
+  const list = db['adoga_reviews'] || []
+  return list.find(r => r.bookingId === bookingId)
+}
+
+function openReviewModal(b) {
+  reviewBooking.value = b
+  const existing = getReviewForBooking(b.id)
+  if (existing) {
+    reviewRating.value = existing.rating || 5
+    reviewComment.value = existing.comment || ''
+  } else {
+    reviewRating.value = 5
+    reviewComment.value = ''
+  }
+  showReviewModal.value = true
+}
+
+function submitReview() {
+  if (!reviewBooking.value) return
+  if (!reviewComment.value.trim()) {
+    showToast('กรุณากรอกข้อความรีวิว', 'error')
+    return
+  }
+  const b = reviewBooking.value
+  const reviews = [...(db['adoga_reviews'] || [])]
+  const existingIndex = reviews.findIndex(r => r.bookingId === b.id)
+
+  const reviewData = {
+    id: existingIndex !== -1 ? reviews[existingIndex].id : `R${Date.now()}`,
+    bookingId: b.id,
+    hotelId: b.hotelId,
+    userId: session.value?.userId || 'U001',
+    rating: Number(reviewRating.value) || 5,
+    comment: reviewComment.value.trim(),
+    date: new Date().toISOString()
+  }
+
+  if (existingIndex !== -1) {
+    reviews[existingIndex] = reviewData
+  } else {
+    reviews.push(reviewData)
+  }
+
+  db['adoga_reviews'] = reviews
+
+  // Calculate and update hotel overall rating in adoga_hotels store
+  const hotelReviews = reviews.filter(r => r.hotelId === b.hotelId)
+  if (hotelReviews.length > 0) {
+    const newAvg = hotelReviews.reduce((sum, r) => sum + r.rating, 0) / hotelReviews.length
+    const hotels = [...(db['adoga_hotels'] || [])]
+    const hIdx = hotels.findIndex(h => h.id === b.hotelId)
+    if (hIdx !== -1) {
+      hotels[hIdx] = { ...hotels[hIdx], rating: Number(newAvg.toFixed(1)) }
+      db['adoga_hotels'] = hotels
+    }
+  }
+
+  showToast('บันทึกรีวิวเรียบร้อยแล้ว ขอบคุณสำหรับความคิดเห็น!', 'success')
+  showReviewModal.value = false
 }
 
 const derivedBookingStatus = (b) => {
@@ -417,6 +491,18 @@ function printDocument() {
                     <span>ใบคืนเงิน (A4)</span>
                   </button>
 
+                  <!-- Button 3: เขียนรีวิวโรงแรม (Review Button for checked-out bookings) -->
+                  <button
+                    v-if="canReview(b)"
+                    @click="openReviewModal(b)"
+                    type="button"
+                    class="h-10 px-4 rounded-full border-2 border-amber-400 hover:border-amber-500 bg-amber-50/80 hover:bg-amber-400 text-amber-900 hover:text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    :title="getReviewForBooking(b.id) ? 'ดู/แก้ไขรีวิวของคุณ' : 'เขียนรีวิวและให้คะแนนโรงแรม'"
+                  >
+                    <Star class="w-4 h-4 fill-amber-400 text-amber-500" />
+                    <span>{{ getReviewForBooking(b.id) ? 'แก้ไขรีวิว' : 'เขียนรีวิวโรงแรม' }}</span>
+                  </button>
+
                   <BaseButton
                     v-if="b.status === 'pending_payment'"
                     @click="doCancelBooking(b.id)"
@@ -453,6 +539,68 @@ function printDocument() {
         <div class="flex gap-3 justify-end pt-2">
           <BaseButton @click="showRefundModal = false" variant="ghost" size="md">ยกเลิก</BaseButton>
           <BaseButton @click="submitRefund" variant="secondary" size="md" :disabled="!refundReason.trim()">ยื่นคำขอ</BaseButton>
+        </div>
+      </div>
+    </BaseModal>
+
+    <!-- Review Modal -->
+    <BaseModal :open="showReviewModal" @close="showReviewModal = false" title="⭐ เขียนรีวิวและให้คะแนนที่พัก">
+      <div v-if="reviewBooking" class="flex flex-col gap-4">
+        <!-- Hotel & Room Header -->
+        <div class="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl">
+          <h4 class="font-bold text-base text-slate-900 mb-1">
+            {{ getHotelName(reviewBooking.hotelId) }}
+          </h4>
+          <p class="text-xs font-semibold text-indigo-700">
+            🛏️ {{ getRoomType(reviewBooking.hotelId, reviewBooking.roomId) }} (หมายเลขห้อง {{ reviewBooking.roomNo }})
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            📅 วันที่เข้าพัก: {{ formatDate(reviewBooking.checkIn) }} — {{ formatDate(reviewBooking.checkOut) }}
+          </p>
+        </div>
+
+        <!-- Rating Star Selection -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">ให้คะแนนที่พัก (คลิกเลือกดาว):</label>
+          <div class="flex items-center gap-2 justify-center py-3 bg-amber-50/60 rounded-2xl border border-amber-200">
+            <button
+              v-for="star in 5"
+              :key="star"
+              type="button"
+              @click="reviewRating = star"
+              class="p-1 transition-transform hover:scale-125 cursor-pointer focus:outline-none"
+            >
+              <Star
+                :class="[
+                  'w-8 h-8 transition-colors',
+                  star <= reviewRating ? 'text-amber-400 fill-amber-400 drop-shadow-sm' : 'text-slate-200 fill-slate-100'
+                ]"
+                :stroke-width="1.5"
+              />
+            </button>
+          </div>
+          <p class="text-center text-xs font-bold text-amber-700 mt-2">
+            {{ reviewRating }} / 5 ดาว ({{ reviewRating === 5 ? 'ดีเยี่ยมที่สุด ⭐⭐⭐⭐⭐' : reviewRating === 4 ? 'ดีมาก ⭐⭐⭐⭐' : reviewRating === 3 ? 'ปานกลาง ⭐⭐⭐' : reviewRating === 2 ? 'พอใช้ ⭐⭐' : 'ควรปรับปรุง ⭐' }})
+          </p>
+        </div>
+
+        <!-- Comment Input -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">ความคิดเห็น / รีวิวเพิ่มเติม:</label>
+          <textarea
+            v-model="reviewComment"
+            rows="4"
+            placeholder="ระบุความประทับใจ การบริการ ห้องพัก หรือข้อเสนอแนะสำหรับการเข้าพัก..."
+            class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 text-base text-slate-900 outline-none focus:border-indigo-600 resize-none font-medium"
+          />
+        </div>
+
+        <!-- Modal Action Buttons -->
+        <div class="flex gap-3 justify-end pt-2">
+          <BaseButton @click="showReviewModal = false" variant="ghost" size="md">ยกเลิก</BaseButton>
+          <BaseButton @click="submitReview" variant="secondary" size="md" :disabled="!reviewComment.trim()">
+            บันทึกรีวิว
+          </BaseButton>
         </div>
       </div>
     </BaseModal>

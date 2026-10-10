@@ -30,6 +30,14 @@ const avgRating = computed(() => {
   return reviews.value.reduce((s, r) => s + r.rating, 0) / reviews.value.length
 })
 
+function getUserName(userId) {
+  if (!userId) return 'ผู้ใช้งาน'
+  const users = db['adoga_users'] || []
+  const u = users.find(x => x.id === userId)
+  if (!u) return userId
+  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.nickname || userId
+}
+
 const amenityIcon = {
   'สระว่ายน้ำ': Waves,
   'WiFi ฟรี': Wifi,
@@ -386,10 +394,10 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
               <div v-for="r in reviews" :key="r.id" class="bg-slate-50/70 rounded-2xl border border-slate-100 p-4 sm:p-5">
                 <div class="flex items-center gap-3 mb-2.5">
                   <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700 shadow-2xs">
-                    {{ r.userId.charAt(0).toUpperCase() }}
+                    {{ getUserName(r.userId).charAt(0).toUpperCase() }}
                   </div>
                   <div>
-                    <p class="text-sm font-semibold text-ink">{{ r.userId }}</p>
+                    <p class="text-sm font-semibold text-ink">{{ getUserName(r.userId) }}</p>
                     <p class="text-xs text-ink-muted">{{ formatDate(r.date) }}</p>
                   </div>
                   <div class="ml-auto flex items-center gap-0.5">

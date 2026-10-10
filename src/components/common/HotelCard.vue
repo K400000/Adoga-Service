@@ -6,11 +6,24 @@ import { MapPin, Star, Heart } from '@lucide/vue'
 import { formatPrice } from '../../utils/date.js'
 import { FALLBACK_IMAGE } from '../../constants/images.js'
 
+import { db } from '../../stores/db.js'
+
 const props = defineProps({
   hotel: { type: Object, required: true },
 })
 
 const router = useRouter()
+
+const actualRating = computed(() => {
+  const reviews = (db['adoga_reviews'] || []).filter(r => r.hotelId === props.hotel.id)
+  if (!reviews.length) return props.hotel.rating || 0
+  return reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+})
+
+const reviewCount = computed(() => {
+  return (db['adoga_reviews'] || []).filter(r => r.hotelId === props.hotel.id).length
+})
+
 const minPrice = computed(() => {
   if (!props.hotel.rooms?.length) return props.hotel.pricePerNight
   return Math.min(...props.hotel.rooms.map(r => r.price))
@@ -70,7 +83,8 @@ function goDetail() { router.push(`/hotel/${props.hotel.id}`) }
       <div class="flex items-end justify-between gap-2">
         <div class="flex items-center gap-1">
           <Star class="w-4 h-4 text-amber-500 fill-amber-400" :stroke-width="1.75" />
-          <span class="text-sm font-medium text-ink">{{ hotel.rating?.toFixed(1) }}</span>
+          <span class="text-sm font-bold text-ink">{{ actualRating.toFixed(1) }}</span>
+          <span v-if="reviewCount > 0" class="text-xs text-slate-500">({{ reviewCount }})</span>
           <span v-if="availableRooms > 0" class="text-xs text-ink-muted ml-1">(เหลือ {{ availableRooms }} ห้อง)</span>
           <span v-else class="text-xs text-rose-600 ml-1">เต็ม</span>
         </div>
