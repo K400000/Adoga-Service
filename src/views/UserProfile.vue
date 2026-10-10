@@ -89,9 +89,7 @@ function refundForBooking(bookingId) {
 }
 
 function canRefund(b) {
-  return settings.value.enableRefund
-    && b.status === 'confirmed'
-    && b.paymentStatus === 'success'
+  return (b.status === 'confirmed' || b.paymentStatus === 'success')
     && !b.checkedOutAt
     && !refundForBooking(b.id)
 }
@@ -320,18 +318,13 @@ function getRoleLabel(role) {
                     size="md"
                   >ยกเลิกการจอง</BaseButton>
                   
-                  <BaseButton
+                  <router-link
                     v-if="canRefund(b)"
-                    @click="openRefundModal(b.id)"
-                    variant="outline"
-                    size="md"
-                  >ขอคืนเงิน</BaseButton>
-                  
-                  <BaseButton
-                    v-else-if="b.status === 'confirmed' && !refundForBooking(b.id) && !settings.enableRefund"
-                    :disabled="true"
-                    size="md"
-                  >ขอคืนเงิน (Coming Soon)</BaseButton>
+                    :to="'/refund-request/' + b.id"
+                    class="h-10 px-5 rounded-full border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white font-bold text-sm inline-flex items-center justify-center transition-all no-underline shadow-xs"
+                  >
+                    <span>ขอคืนเงิน</span>
+                  </router-link>
                 </div>
               </div>
             </div>

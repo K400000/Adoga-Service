@@ -10,6 +10,7 @@ const ForgotPassword = () => import('../views/ForgotPassword.vue')
 const HotelDetail = () => import('../views/HotelDetail.vue')
 const BookingFlow = () => import('../views/BookingFlow.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
+const RefundRequest = () => import('../views/RefundRequest.vue')
 const UserMessage = () => import('../views/UserMessage.vue')
 const ManagerDashboard = () => import('../views/ManagerDashboard.vue')
 const ManagerMessage = () => import('../views/ManagerMessage.vue')
@@ -26,6 +27,7 @@ const routes = [
   { path: '/auth/forgot', component: ForgotPassword, meta: { access: 'guest' } },
   { path: '/booking/:hotelId', component: BookingFlow, meta: { access: 'user' } },
   { path: '/profile', component: UserProfile, meta: { access: 'user' } },
+  { path: '/refund-request/:bookingId', component: RefundRequest, meta: { access: 'user' } },
   { path: '/messages', component: UserMessage, meta: { access: 'user' } },
   { path: '/manager', component: ManagerDashboard, meta: { access: 'manager' } },
   { path: '/manager/messages', component: ManagerMessage, meta: { access: 'manager' } },

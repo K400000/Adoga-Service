@@ -240,7 +240,7 @@ export function runSeed(force = false) {
   ]
 
   // ── Settings & Filler Bookings ────────────────────────────
-  const settings = { enableRefund: false }
+  const settings = { enableRefund: true }
 
   // Filler bookings for charts (~50 items, completed, spread over 12 months)
   const fillers = []

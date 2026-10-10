@@ -33,5 +33,5 @@ export function getBookings() { return db['adoga_bookings'] || [] }
 export function getRefunds()  { return db['adoga_refunds'] || [] }
 export function getReviews()  { return db['adoga_reviews'] || [] }
 export function getMessages() { return db['adoga_messages'] || [] }
-export function getSettings() { return db['adoga_settings'] || { enableRefund: false } }
+export function getSettings() { return db['adoga_settings'] || { enableRefund: true } }
 export function getSession()  { return db['adoga_current_session'] || null }
