@@ -243,13 +243,14 @@ const ROLES = [
           </div>
 
           <BaseInput label="อีเมล" type="email" v-model="loginEmail" placeholder="example@email.com" required />
-          <div class="relative">
-            <BaseInput :label="'รหัสผ่าน'" :type="showLoginPwd ? 'text' : 'password'" v-model="loginPassword" placeholder="••••••••" required />
-            <button type="button" @click="showLoginPwd = !showLoginPwd" class="absolute right-3 top-8 text-ink-muted hover:text-ink">
-              <EyeOff v-if="showLoginPwd" class="w-5 h-5" :stroke-width="1.75" />
-              <Eye v-else class="w-5 h-5" :stroke-width="1.75" />
-            </button>
-          </div>
+          <BaseInput label="รหัสผ่าน" :type="showLoginPwd ? 'text' : 'password'" v-model="loginPassword" placeholder="••••••••" required>
+            <template #suffix>
+              <button type="button" @click="showLoginPwd = !showLoginPwd" class="text-ink-muted hover:text-ink transition-colors cursor-pointer">
+                <EyeOff v-if="showLoginPwd" class="w-5 h-5" :stroke-width="1.75" />
+                <Eye v-else class="w-5 h-5" :stroke-width="1.75" />
+              </button>
+            </template>
+          </BaseInput>
 
           <div v-if="loginError" class="text-sm text-rose-700 bg-rose-50 px-3 py-2 rounded-xl ring-1 ring-rose-200">
             {{ loginError }}
@@ -297,13 +298,14 @@ const ROLES = [
             </div>
             <BaseInput label="ชื่อเล่น (ไม่บังคับ)" v-model="regNickname" placeholder="ชื่อเล่น" />
             <BaseInput label="อีเมล" type="email" v-model="regEmail" placeholder="example@email.com" required :error="regErrors.email" />
-            <div class="relative">
-              <BaseInput :label="'รหัสผ่าน'" :type="showRegPwd ? 'text' : 'password'" v-model="regPassword" placeholder="••••••••" required :error="regErrors.password" />
-              <button type="button" @click="showRegPwd = !showRegPwd" class="absolute right-3 top-8 text-ink-muted hover:text-ink">
-                <EyeOff v-if="showRegPwd" class="w-5 h-5" :stroke-width="1.75" />
-                <Eye v-else class="w-5 h-5" :stroke-width="1.75" />
-              </button>
-            </div>
+            <BaseInput label="รหัสผ่าน" :type="showRegPwd ? 'text' : 'password'" v-model="regPassword" placeholder="••••••••" required :error="regErrors.password">
+              <template #suffix>
+                <button type="button" @click="showRegPwd = !showRegPwd" class="text-ink-muted hover:text-ink transition-colors cursor-pointer">
+                  <EyeOff v-if="showRegPwd" class="w-5 h-5" :stroke-width="1.75" />
+                  <Eye v-else class="w-5 h-5" :stroke-width="1.75" />
+                </button>
+              </template>
+            </BaseInput>
 
             <!-- Password checklist -->
             <div v-if="regPassword" class="grid grid-cols-2 gap-1 px-1">

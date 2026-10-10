@@ -76,8 +76,8 @@ function goDetail() { router.push(`/hotel/${props.hotel.id}`) }
         </div>
         <div class="text-right">
           <p v-if="hasDiscount" class="text-xs text-ink-muted line-through">{{ formatPrice(minPrice) }}</p>
-          <p class="font-display font-semibold text-xl text-ink tabular-nums">{{ formatPrice(discountedPrice) }}</p>
-          <p class="text-xs text-ink-muted">/ คืน</p>
+          <p class="font-display font-extrabold text-2xl text-indigo-600 tabular-nums tracking-tight">{{ formatPrice(discountedPrice) }}</p>
+          <p class="text-[11px] text-ink-muted font-medium">/ คืน</p>
         </div>
       </div>
     </div>

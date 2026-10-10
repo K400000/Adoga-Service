@@ -275,7 +275,7 @@ function doSearch() {
         <section v-if="featuredHotel" class="w-full space-y-4">
           <div class="flex items-baseline justify-between">
             <h2 class="font-display font-semibold text-xl sm:text-2xl text-ink flex items-center gap-2">
-              <span>🔥 ข้อเสนอพิเศษ</span>
+              <span>ข้อเสนอพิเศษ</span>
             </h2>
           </div>
 
@@ -294,8 +294,9 @@ function doSearch() {
               
               <div class="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
                 <div class="flex items-center gap-2 mb-1.5">
-                  <span class="px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-xs font-medium">
-                    📍 {{ featuredHotel.location }}
+                  <span class="px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white text-xs font-medium flex items-center gap-1">
+                    <MapPin class="w-3.5 h-3.5 text-blue-300" />
+                    <span>{{ featuredHotel.location }}</span>
                   </span>
                   <span v-if="featuredHotel.discount" class="px-2.5 py-0.5 rounded-md bg-coral-600 text-white text-xs font-bold shadow-xs">
                     ลด {{ featuredHotel.discount }}%
@@ -307,10 +308,10 @@ function doSearch() {
                 </h3>
 
                 <div class="flex items-baseline gap-2">
-                  <span class="text-white font-display font-semibold text-xl sm:text-2xl">
+                  <span class="text-white font-display font-extrabold text-3xl sm:text-4xl md:text-5xl drop-shadow-md tracking-tight">
                     ฿{{ Math.round(featuredHotel.pricePerNight * (1 - featuredHotel.discount/100)).toLocaleString() }}
                   </span>
-                  <span class="text-white/70 text-xs sm:text-sm">/ คืน</span>
+                  <span class="text-white/80 text-sm sm:text-base font-medium">/ คืน</span>
                 </div>
               </div>
             </article>
@@ -331,13 +332,16 @@ function doSearch() {
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 
                 <div class="absolute bottom-3 left-4 right-4">
-                  <span class="text-white/80 text-[11px] font-medium block mb-0.5">📍 {{ h.location }}</span>
+                  <span class="text-white/80 text-[11px] font-medium flex items-center gap-1 mb-0.5">
+                    <MapPin class="w-3 h-3 text-blue-300" />
+                    <span>{{ h.location }}</span>
+                  </span>
                   <h4 class="font-display font-medium text-white text-sm sm:text-base truncate mb-1">{{ h.name }}</h4>
                   <div class="flex items-baseline gap-1.5">
-                    <span class="text-white font-display font-semibold text-base">
+                    <span class="text-white font-display font-extrabold text-xl sm:text-2xl drop-shadow-sm tracking-tight">
                       ฿{{ Math.round(h.pricePerNight * (1 - h.discount/100)).toLocaleString() }}
                     </span>
-                    <span class="text-white/70 text-[11px]">/ คืน</span>
+                    <span class="text-white/80 text-xs font-medium">/ คืน</span>
                   </div>
                 </div>
               </article>
