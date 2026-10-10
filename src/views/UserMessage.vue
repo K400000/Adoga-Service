@@ -5,7 +5,7 @@ import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
-import { Search, SlidersHorizontal, Send, MessageCircle, MapPin, CheckCheck, Building } from '@lucide/vue'
+import { Search, SlidersHorizontal, Send, MessageCircle, MapPin, CheckCheck, Building, ArrowLeft } from '@lucide/vue'
 
 const { session } = useSession()
 const selectedHotelId = ref(null)
@@ -114,9 +114,9 @@ function selectThread(hotelId) {
   markAsRead(hotelId)
 }
 
-// Default select first thread
+// Default select first thread on desktop
 onMounted(() => {
-  if (userThreads.value.length > 0) {
+  if (window.innerWidth >= 768 && userThreads.value.length > 0) {
     selectedHotelId.value = userThreads.value[0].hotel.id
     markAsRead(selectedHotelId.value)
   }
@@ -158,14 +158,14 @@ async function sendMsg() {
   <div class="min-h-screen bg-canvas flex flex-col">
     <Navbar />
     
-    <div class="flex-1 mx-auto w-full max-w-[1440px] px-4 md:px-8 py-6 flex flex-col">
-      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-6">ข้อความ</h1>
+    <div class="flex-1 mx-auto w-full max-w-[1440px] px-3 sm:px-4 md:px-8 py-4 sm:py-6 flex flex-col">
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-4 sm:mb-6">ข้อความ</h1>
 
       <!-- Messaging Interface Container -->
-      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[720px] shadow-sm">
+      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[calc(100vh-180px)] min-h-[500px] md:h-[720px] shadow-sm">
         
-        <!-- Sidebar: Conversation List (Matching Reference Image) -->
-        <div class="w-full md:w-80 lg:w-96 border-r border-line flex flex-col bg-slate-50/40">
+        <!-- Sidebar: Conversation List -->
+        <div :class="['w-full md:w-80 lg:w-96 border-r border-line flex-col bg-slate-50/40', selectedHotelId ? 'hidden md:flex' : 'flex']">
           
           <!-- Top Search Header Box -->
           <div class="p-4 border-b border-line bg-white">
@@ -238,7 +238,7 @@ async function sendMsg() {
         </div>
 
         <!-- Chat Area (Right Side) -->
-        <div class="flex-1 flex flex-col bg-white">
+        <div :class="['flex-1 flex-col bg-white min-h-0', selectedHotelId ? 'flex' : 'hidden md:flex']">
           <div v-if="!selectedHotel" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
             <MessageCircle class="w-16 h-16 text-slate-300 mb-4" :stroke-width="1.5" />
             <p class="text-lg font-semibold text-slate-700 mb-1">เลือกการสนทนา</p>
@@ -247,20 +247,30 @@ async function sendMsg() {
 
           <template v-else>
             <!-- Chat Room Top Bar Header -->
-            <div class="p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
-              <div class="flex items-center gap-3">
+            <div class="p-3.5 sm:p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
+              <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <!-- Mobile Back Button -->
+                <button
+                  @click="selectedHotelId = null"
+                  type="button"
+                  class="flex items-center gap-1 text-slate-600 hover:text-slate-900 font-semibold text-xs sm:text-sm md:hidden p-1.5 -ml-1 rounded-xl hover:bg-slate-100 cursor-pointer flex-shrink-0"
+                >
+                  <ArrowLeft class="w-5 h-5 text-slate-700" />
+                  <span>ย้อนกลับ</span>
+                </button>
+
                 <img
                   :src="selectedHotel.images?.[0]"
                   :alt="selectedHotel.name"
-                  class="w-11 h-11 object-cover rounded-xl border border-slate-200"
+                  class="w-10 h-10 sm:w-11 sm:h-11 object-cover rounded-xl border border-slate-200 flex-shrink-0"
                 />
-                <div>
-                  <h3 class="font-bold text-slate-900 text-base leading-tight">{{ selectedHotel.name }}</h3>
-                  <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                    <MapPin class="w-3.5 h-3.5 text-blue-600" />
-                    <span>{{ selectedHotel.location }}</span>
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1"></span>
-                    <span class="text-emerald-600 font-medium">ออนไลน์</span>
+                <div class="min-w-0">
+                  <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">{{ selectedHotel.name }}</h3>
+                  <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                    <MapPin class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                    <span class="truncate">{{ selectedHotel.location }}</span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1 flex-shrink-0"></span>
+                    <span class="text-emerald-600 font-medium flex-shrink-0">ออนไลน์</span>
                   </p>
                 </div>
               </div>
@@ -282,7 +292,7 @@ async function sendMsg() {
               >
                 <div
                   :class="[
-                    'max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
+                    'max-w-[85%] sm:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
                     m.sender === 'user'
                       ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
                       : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
@@ -298,19 +308,19 @@ async function sendMsg() {
             </div>
 
             <!-- Bottom Input Bar -->
-            <div class="p-4 border-t border-line bg-white flex items-center gap-3">
+            <div class="p-3 sm:p-4 border-t border-line bg-white flex items-center gap-2 sm:gap-3">
               <input
                 v-model="newMsg"
                 @keydown.enter.prevent="sendMsg"
                 type="text"
                 placeholder="พิมพ์ข้อความตอบกลับ..."
-                class="flex-1 h-11 px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
+                class="flex-1 h-10 sm:h-11 px-4 sm:px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
               />
               <button
                 @click="sendMsg"
                 :disabled="!newMsg.trim()"
                 type="button"
-                class="h-11 px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+                class="h-10 sm:h-11 px-4 sm:px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex-shrink-0"
               >
                 <span>ส่ง</span>
                 <Send class="w-4 h-4" :stroke-width="2" />
@@ -325,3 +335,4 @@ async function sendMsg() {
     <Footer />
   </div>
 </template>
+

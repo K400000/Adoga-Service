@@ -4,7 +4,7 @@ import { computed, ref, nextTick, onMounted } from 'vue'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import Sidebar from '../components/common/Sidebar.vue'
-import { Search, SlidersHorizontal, Send, MessageCircle, User, CheckCheck, Building } from '@lucide/vue'
+import { Search, SlidersHorizontal, Send, MessageCircle, User, CheckCheck, Building, ArrowLeft } from '@lucide/vue'
 
 const { session } = useSession()
 const selectedThread = ref(null) // { hotelId, userId }
@@ -122,8 +122,9 @@ function selectThread(t) {
   markAsRead(t)
 }
 
+// Default select first thread on desktop
 onMounted(() => {
-  if (threads.value.length > 0) {
+  if (window.innerWidth >= 768 && threads.value.length > 0) {
     selectedThread.value = threads.value[0]
     markAsRead(selectedThread.value)
   }
@@ -159,14 +160,14 @@ async function sendMsg() {
   <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
     <Sidebar type="manager" />
     
-    <div class="flex-1 min-w-0 lg:ml-64 p-4 sm:p-6 md:p-8 flex flex-col">
-      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-6">ข้อความจากแขก</h1>
+    <div class="flex-1 min-w-0 lg:ml-64 p-3 sm:p-6 md:p-8 flex flex-col">
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-4 sm:mb-6">ข้อความจากแขก</h1>
 
       <!-- Messaging Interface Container -->
-      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[720px] shadow-sm">
+      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[calc(100vh-180px)] min-h-[500px] md:h-[720px] shadow-sm">
         
-        <!-- Sidebar: Conversation Threads List (Matching Reference Image) -->
-        <div class="w-full md:w-80 lg:w-96 border-r border-line flex flex-col bg-slate-50/40">
+        <!-- Sidebar: Conversation Threads List -->
+        <div :class="['w-full md:w-80 lg:w-96 border-r border-line flex-col bg-slate-50/40', selectedThread ? 'hidden md:flex' : 'flex']">
           
           <!-- Search Header Box -->
           <div class="p-4 border-b border-line bg-white">
@@ -241,7 +242,7 @@ async function sendMsg() {
         </div>
 
         <!-- Chat Area (Right Side) -->
-        <div class="flex-1 flex flex-col bg-white">
+        <div :class="['flex-1 flex-col bg-white min-h-0', selectedThread ? 'flex' : 'hidden md:flex']">
           <div v-if="!selectedThread" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
             <MessageCircle class="w-16 h-16 text-slate-300 mb-4" :stroke-width="1.5" />
             <p class="text-lg font-semibold text-slate-700 mb-1">เลือกการสนทนา</p>
@@ -250,16 +251,26 @@ async function sendMsg() {
 
           <template v-else>
             <!-- Chat Header -->
-            <div class="p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
-              <div class="flex items-center gap-3">
-                <div class="w-11 h-11 bg-indigo-100 text-indigo-700 font-bold rounded-2xl flex items-center justify-center border border-indigo-200">
-                  <User class="w-6 h-6 text-indigo-600" />
+            <div class="p-3.5 sm:p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
+              <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <!-- Mobile Back Button -->
+                <button
+                  @click="selectedThread = null"
+                  type="button"
+                  class="flex items-center gap-1 text-slate-600 hover:text-slate-900 font-semibold text-xs sm:text-sm md:hidden p-1.5 -ml-1 rounded-xl hover:bg-slate-100 cursor-pointer flex-shrink-0"
+                >
+                  <ArrowLeft class="w-5 h-5 text-slate-700" />
+                  <span>ย้อนกลับ</span>
+                </button>
+
+                <div class="w-10 h-10 sm:w-11 sm:h-11 bg-indigo-100 text-indigo-700 font-bold rounded-2xl flex items-center justify-center border border-indigo-200 flex-shrink-0">
+                  <User class="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                 </div>
-                <div>
-                  <h3 class="font-bold text-slate-900 text-base leading-tight">
+                <div class="min-w-0">
+                  <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">
                     {{ getUser(selectedThread.userId)?.firstName }} {{ getUser(selectedThread.userId)?.lastName }} ({{ getUser(selectedThread.userId)?.nickname }})
                   </h3>
-                  <p class="text-xs text-slate-500 mt-0.5">
+                  <p class="text-xs text-slate-500 mt-0.5 truncate">
                     ที่พัก: <strong class="text-slate-800">{{ getHotel(selectedThread.hotelId)?.name }}</strong>
                   </p>
                 </div>
@@ -282,7 +293,7 @@ async function sendMsg() {
               >
                 <div
                   :class="[
-                    'max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
+                    'max-w-[85%] sm:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
                     m.sender === 'manager'
                       ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
                       : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
@@ -298,19 +309,19 @@ async function sendMsg() {
             </div>
 
             <!-- Bottom Input Bar -->
-            <div class="p-4 border-t border-line bg-white flex items-center gap-3">
+            <div class="p-3 sm:p-4 border-t border-line bg-white flex items-center gap-2 sm:gap-3">
               <input
                 v-model="newMsg"
                 @keydown.enter.prevent="sendMsg"
                 type="text"
                 placeholder="พิมพ์ข้อความตอบกลับแขก..."
-                class="flex-1 h-11 px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
+                class="flex-1 h-10 sm:h-11 px-4 sm:px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
               />
               <button
                 @click="sendMsg"
                 :disabled="!newMsg.trim()"
                 type="button"
-                class="h-11 px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+                class="h-10 sm:h-11 px-4 sm:px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex-shrink-0"
               >
                 <span>ส่ง</span>
                 <Send class="w-4 h-4" :stroke-width="2" />
@@ -323,3 +334,4 @@ async function sendMsg() {
     </div>
   </div>
 </template>
+

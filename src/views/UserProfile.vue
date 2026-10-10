@@ -300,7 +300,7 @@ function printDocument() {
           <!-- Large Readable Personal Details Card Grid -->
           <div class="bg-white rounded-3xl border border-line p-6 sm:p-10 shadow-sm space-y-8">
             <h2 class="font-display font-bold text-xl sm:text-2xl text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-4">
-              <span>📋 รายละเอียดบัญชีผู้ใช้</span>
+              <span>รายละเอียดบัญชีผู้ใช้</span>
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -447,11 +447,11 @@ function printDocument() {
                   </div>
 
                   <p class="text-base font-semibold text-slate-600">
-                    📅 วันเข้าพัก: {{ formatDate(b.checkIn) }} → {{ formatDate(b.checkOut) }} · {{ b.nights }} คืน · {{ b.guests }} ท่าน
+                    วันเข้าพัก: {{ formatDate(b.checkIn) }} → {{ formatDate(b.checkOut) }} · {{ b.nights }} คืน · {{ b.guests }} ท่าน
                   </p>
 
                   <p class="text-sm font-semibold text-slate-500">
-                    💳 วันที่ชำระเงิน: {{ formatDate(b.createdAt) }}
+                    วันที่ชำระเงิน: {{ formatDate(b.createdAt) }}
                   </p>
 
                   <p class="font-display font-bold text-2xl text-indigo-600 tabular-nums pt-1">
