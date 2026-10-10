@@ -3,7 +3,7 @@ import { set, get } from '../utils/storage.js'
 import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 
-const VERSION = 2
+const VERSION = 3
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -212,10 +212,31 @@ export function runSeed(force = false) {
 
   // ── Messages ──────────────────────────────────────────────
   const messages = [
-    { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-3) },
-    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'ได้ครับ เริ่มตั้งแต่ 12:00 น. หากห้องพักพร้อมทำความสะอาดแล้ว', sentAt: isoH(-2) },
-    { id:'MSG003', hotelId:'H003', userId:'U001', sender:'user',    text:'มีบริการรถรับส่งจากสนามบินเชียงใหม่ไหมครับ', sentAt: isoH(-5) },
-    { id:'MSG004', hotelId:'H003', userId:'U001', sender:'manager', text:'มีบริการครับ สามารถแจ้งเที่ยวบินล่วงหน้าได้เลยครับ', sentAt: isoH(-4) },
+    // U001 Messages
+    { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-3), unread: false },
+    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'สวัสดีครับ ขอบคุณที่จองกับเรา หากมีคำถามเพิ่มเติม เรายินดีให้บริการครับ', sentAt: isoH(-2), unread: true },
+    
+    { id:'MSG003', hotelId:'H002', userId:'U001', sender:'user',    text:'มีที่จอดรถสำหรับรถบัสไหมครับ', sentAt: isoH(-4), unread: false },
+    { id:'MSG004', hotelId:'H002', userId:'U001', sender:'manager', text:'ได้เลยครับ ทางโรงแรมยินดีต้อนรับคุณครับ หากต้องการให้เราจัดเตรียมอะไรเพิ่มเติม...', sentAt: isoH(-3), unread: true },
+
+    { id:'MSG005', hotelId:'H003', userId:'U001', sender:'user',    text:'มีบริการรถรับส่งจากสนามบินเชียงใหม่ไหมครับ', sentAt: isoD(-1), unread: false },
+    { id:'MSG006', hotelId:'H003', userId:'U001', sender:'manager', text:'ขอบคุณมากครับ ทางเราจะเตรียมห้องให้ตามคำขอครับ', sentAt: isoD(-1), unread: false },
+
+    { id:'MSG007', hotelId:'H005', userId:'U001', sender:'user',    text:'ขอสอบถามเรื่องเวลาเช็คอินครับ', sentAt: isoD(-1), unread: false },
+    { id:'MSG008', hotelId:'H005', userId:'U001', sender:'manager', text:'สวัสดีค่ะ สามารถเช็คอินได้ตั้งแต่ 14:00 น. ค่ะ', sentAt: isoD(-1), unread: false },
+
+    { id:'MSG009', hotelId:'H007', userId:'U001', sender:'user',    text:'เตียงเสริมมีค่าใช้จ่ายเพิ่มเติมเท่าไรครับ', sentAt: isoD(-2), unread: false },
+    { id:'MSG010', hotelId:'H007', userId:'U001', sender:'manager', text:'ขออภัยในความไม่สะดวก ทางเราจะตรวจสอบและแจ้งกลับครับ', sentAt: isoD(-2), unread: false },
+
+    { id:'MSG011', hotelId:'H008', userId:'U001', sender:'user',    text:'ประทับใจการบริการมากครับ', sentAt: isoD(-3), unread: false },
+    { id:'MSG012', hotelId:'H008', userId:'U001', sender:'manager', text:'ขอบคุณที่ใช้บริการค่ะ หวังว่าจะได้ต้อนรับอีกครั้ง', sentAt: isoD(-3), unread: false },
+
+    // U002 Messages
+    { id:'MSG013', hotelId:'H003', userId:'U002', sender:'user',    text:'ต้องการขอเตียงเสริมสำหรับเด็ก 1 ขวบค่ะ', sentAt: isoH(-5), unread: false },
+    { id:'MSG014', hotelId:'H003', userId:'U002', sender:'manager', text:'ทางเราจัดเตรียมเปลเด็กให้เรียบร้อยแล้วค่ะ', sentAt: isoH(-4), unread: true },
+
+    { id:'MSG015', hotelId:'H010', userId:'U002', sender:'user',    text:'มีเรือข้ามฟากไปไอคอนสยามไหมคะ', sentAt: isoD(-1), unread: false },
+    { id:'MSG016', hotelId:'H010', userId:'U002', sender:'manager', text:'มีบริการเรือรับส่งข้ามฟากฟรีทุก 30 นาทีครับ', sentAt: isoD(-1), unread: false },
   ]
 
   // ── Settings & Filler Bookings ────────────────────────────

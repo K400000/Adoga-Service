@@ -1,31 +1,119 @@
 <script setup>
 // src/views/UserMessage.vue
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, onMounted } from 'vue'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
-import { Send, MessageCircle } from '@lucide/vue'
+import { Search, SlidersHorizontal, Send, MessageCircle, MapPin, CheckCheck, Building } from '@lucide/vue'
 
 const { session } = useSession()
 const selectedHotelId = ref(null)
+const searchQuery = ref('')
 const newMsg = ref('')
 const msgContainer = ref(null)
 
-const myHotels = computed(() => {
-  const bookings = (db['adoga_bookings'] || []).filter(b => b.userId === session.value?.userId)
-  const hotelIds = [...new Set(bookings.map(b => b.hotelId))]
-  return hotelIds.map(id => (db['adoga_hotels'] || []).find(h => h.id === id)).filter(Boolean)
+// Format message timestamp
+function formatMsgTime(isoStr) {
+  if (!isoStr) return ''
+  const date = new Date(isoStr)
+  const now = new Date()
+  
+  const diffMs = now - date
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  const timeStr = `${hours}:${minutes}`
+  
+  if (date.toDateString() === now.toDateString()) {
+    return timeStr
+  }
+  
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'เมื่อวาน'
+  }
+  
+  if (diffDays > 1 && diffDays < 7) {
+    return `${diffDays} วันที่แล้ว`
+  }
+  
+  return `${date.getDate()}/${date.getMonth() + 1}`
+}
+
+// Compute all hotel threads for current user
+const userThreads = computed(() => {
+  const allMessages = db['adoga_messages'] || []
+  const userId = session.value?.userId
+  if (!userId) return []
+  
+  const bookings = (db['adoga_bookings'] || []).filter(b => b.userId === userId)
+  const bookedHotelIds = bookings.map(b => b.hotelId)
+  const messagedHotelIds = allMessages.filter(m => m.userId === userId).map(m => m.hotelId)
+  
+  // Combine unique hotel IDs
+  const allHotelIds = [...new Set([...bookedHotelIds, ...messagedHotelIds])]
+  const hotels = (db['adoga_hotels'] || []).filter(h => allHotelIds.includes(h.id))
+  
+  let threads = hotels.map(h => {
+    const hotelMsgs = allMessages
+      .filter(m => m.hotelId === h.id && m.userId === userId)
+      .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
+      
+    const last = hotelMsgs[0]
+    const unreadCount = hotelMsgs.filter(m => m.sender === 'manager' && m.unread).length
+    
+    return {
+      hotel: h,
+      lastMsg: last ? last.text : 'เริ่มสนทนากับที่พักเพื่อสอบถามข้อมูล',
+      lastAt: last ? last.sentAt : null,
+      unreadCount: unreadCount,
+    }
+  })
+
+  // Sort by latest message date
+  threads.sort((a, b) => {
+    if (!a.lastAt) return 1
+    if (!b.lastAt) return -1
+    return new Date(b.lastAt) - new Date(a.lastAt)
+  })
+
+  // Filter search
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    threads = threads.filter(t =>
+      t.hotel.name.toLowerCase().includes(q) ||
+      t.lastMsg.toLowerCase().includes(q) ||
+      t.hotel.location.toLowerCase().includes(q)
+    )
+  }
+
+  return threads
 })
 
-const messages = computed(() => {
-  if (!selectedHotelId.value) return []
-  return (db['adoga_messages'] || []).filter(m => m.hotelId === selectedHotelId.value && m.userId === session.value?.userId)
+// Default select first thread
+onMounted(() => {
+  if (userThreads.value.length > 0) {
+    selectedHotelId.value = userThreads.value[0].hotel.id
+  }
+})
+
+const selectedHotel = computed(() => {
+  if (!selectedHotelId.value) return null
+  return (db['adoga_hotels'] || []).find(h => h.id === selectedHotelId.value)
+})
+
+const currentMessages = computed(() => {
+  if (!selectedHotelId.value || !session.value?.userId) return []
+  return (db['adoga_messages'] || [])
+    .filter(m => m.hotelId === selectedHotelId.value && m.userId === session.value.userId)
     .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
 })
 
 async function sendMsg() {
-  if (!newMsg.value.trim() || !selectedHotelId.value) return
+  if (!newMsg.value.trim() || !selectedHotelId.value || !session.value?.userId) return
   const msg = {
     id: 'MSG' + Date.now(),
     hotelId: selectedHotelId.value,
@@ -33,75 +121,178 @@ async function sendMsg() {
     sender: 'user',
     text: newMsg.value.trim(),
     sentAt: new Date().toISOString(),
+    unread: false,
   }
   db['adoga_messages'] = [...(db['adoga_messages'] || []), msg]
   newMsg.value = ''
   await nextTick()
-  msgContainer.value?.scrollTo({ top: msgContainer.value.scrollHeight, behavior: 'smooth' })
+  if (msgContainer.value) {
+    msgContainer.value.scrollTo({ top: msgContainer.value.scrollHeight, behavior: 'smooth' })
+  }
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-canvas flex flex-col">
     <Navbar />
-    <div class="flex-1 mx-auto w-full max-w-[1200px] px-4 md:px-8 py-8">
-      <h1 class="font-display font-semibold text-2xl text-ink mb-6">ข้อความ</h1>
+    
+    <div class="flex-1 mx-auto w-full max-w-[1440px] px-4 md:px-8 py-6 flex flex-col">
+      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-6">ข้อความ</h1>
 
-      <div class="bg-white rounded-2xl border border-line overflow-hidden flex h-[600px]">
-        <!-- Hotel list -->
-        <div class="w-64 border-r border-line flex flex-col">
-          <div class="p-4 border-b border-line">
-            <p class="text-sm font-medium text-ink-muted">โรงแรมที่เคยติดต่อ</p>
+      <!-- Messaging Interface Container -->
+      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[720px] shadow-sm">
+        
+        <!-- Sidebar: Conversation List (Matching Reference Image) -->
+        <div class="w-full md:w-80 lg:w-96 border-r border-line flex flex-col bg-slate-50/40">
+          
+          <!-- Top Search Header Box -->
+          <div class="p-4 border-b border-line bg-white">
+            <div class="bg-slate-100 hover:bg-slate-200/70 transition-colors rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 border border-slate-200/70">
+              <Search class="w-5 h-5 text-slate-400 flex-shrink-0" :stroke-width="2" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="ค้นหาโรงแรมหรือข้อความ..."
+                class="w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder-slate-400"
+              />
+              <SlidersHorizontal class="w-4 h-4 text-slate-400 flex-shrink-0 cursor-pointer hover:text-slate-600" />
+            </div>
           </div>
-          <div class="flex-1 overflow-y-auto">
-            <div v-if="!myHotels.length" class="p-4 text-sm text-ink-muted text-center">ยังไม่มีการติดต่อ</div>
+
+          <!-- Conversation Threads List -->
+          <div class="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-none">
+            <div v-if="!userThreads.length" class="py-12 text-center text-sm text-slate-400">
+              <Building class="w-10 h-10 mx-auto text-slate-300 mb-2" />
+              <p>ไม่พบรายการการสนทนา</p>
+            </div>
+
+            <!-- Thread Item Card -->
             <button
-              v-for="h in myHotels"
-              :key="h.id"
-              @click="selectedHotelId = h.id"
-              :class="['w-full text-left px-4 py-3 transition-colors text-sm', selectedHotelId === h.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-ink hover:bg-slate-50']"
-            >{{ h.name }}</button>
+              v-for="item in userThreads"
+              :key="item.hotel.id"
+              @click="selectedHotelId = item.hotel.id"
+              :class="[
+                'w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 border cursor-pointer group',
+                selectedHotelId === item.hotel.id
+                  ? 'bg-blue-50/80 border-blue-200 shadow-xs'
+                  : 'bg-white hover:bg-slate-100/70 border-transparent hover:border-slate-200'
+              ]"
+            >
+              <!-- Hotel Thumbnail Image -->
+              <img
+                :src="item.hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=300&q=80'"
+                :alt="item.hotel.name"
+                class="w-13 h-13 object-cover rounded-2xl flex-shrink-0 border border-slate-200 shadow-2xs group-hover:scale-105 transition-transform"
+              />
+
+              <!-- Title, Message Snippet & Timestamp Info -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline justify-between mb-1 gap-2">
+                  <h4 class="font-semibold text-slate-900 text-sm sm:text-base truncate leading-snug">
+                    {{ item.hotel.name }}
+                  </h4>
+                  <span class="text-[11px] font-semibold text-slate-400 flex-shrink-0">
+                    {{ formatMsgTime(item.lastAt) }}
+                  </span>
+                </div>
+
+                <!-- Latest Message directly under name -->
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-xs text-slate-500 truncate leading-snug line-clamp-1">
+                    {{ item.lastMsg }}
+                  </p>
+                  
+                  <!-- Unread count badge or dot -->
+                  <span
+                    v-if="item.unreadCount > 0"
+                    class="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs"
+                  >
+                    {{ item.unreadCount }}
+                  </span>
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 
-        <!-- Chat area -->
-        <div class="flex-1 flex flex-col">
-          <div v-if="!selectedHotelId" class="flex-1 flex flex-col items-center justify-center text-ink-muted">
-            <MessageCircle class="w-12 h-12 text-slate-300 mb-3" :stroke-width="1.5" />
-            <p>เลือกโรงแรมเพื่อดูข้อความ</p>
+        <!-- Chat Area (Right Side) -->
+        <div class="flex-1 flex flex-col bg-white">
+          <div v-if="!selectedHotel" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+            <MessageCircle class="w-16 h-16 text-slate-300 mb-4" :stroke-width="1.5" />
+            <p class="text-lg font-semibold text-slate-700 mb-1">เลือกการสนทนา</p>
+            <p class="text-sm text-slate-400">เลือกโรงแรมด้านซ้ายมือเพื่อเริ่มพูดคุยและสอบถามข้อมูลเพิ่มเติม</p>
           </div>
+
           <template v-else>
-            <div ref="msgContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            <!-- Chat Room Top Bar Header -->
+            <div class="p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
+              <div class="flex items-center gap-3">
+                <img
+                  :src="selectedHotel.images?.[0]"
+                  :alt="selectedHotel.name"
+                  class="w-11 h-11 object-cover rounded-xl border border-slate-200"
+                />
+                <div>
+                  <h3 class="font-bold text-slate-900 text-base leading-tight">{{ selectedHotel.name }}</h3>
+                  <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                    <MapPin class="w-3.5 h-3.5 text-blue-600" />
+                    <span>{{ selectedHotel.location }}</span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1"></span>
+                    <span class="text-emerald-600 font-medium">ออนไลน์</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Messages Message Container Stream -->
+            <div ref="msgContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/30">
               <div
-                v-for="m in messages"
+                v-for="m in currentMessages"
                 :key="m.id"
-                :class="['flex', m.sender === 'user' ? 'justify-end' : 'justify-start']"
+                :class="['flex flex-col', m.sender === 'user' ? 'items-end' : 'items-start']"
               >
                 <div
                   :class="[
-                    'max-w-xs px-4 py-2.5 rounded-2xl text-sm',
+                    'max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-2xs',
                     m.sender === 'user'
-                      ? 'bg-indigo-600 text-white rounded-tr-sm'
-                      : 'bg-canvas border border-line text-ink rounded-tl-sm'
+                      ? 'bg-blue-600 text-white rounded-br-xs font-medium'
+                      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
                   ]"
-                >{{ m.text }}</div>
+                >
+                  {{ m.text }}
+                </div>
+                <span class="text-[10px] font-medium text-slate-400 mt-1 px-1 flex items-center gap-1">
+                  {{ formatMsgTime(m.sentAt) }}
+                  <CheckCheck v-if="m.sender === 'user'" class="w-3 h-3 text-blue-500" />
+                </span>
               </div>
             </div>
-            <div class="p-4 border-t border-line flex gap-3">
+
+            <!-- Bottom Input Bar -->
+            <div class="p-4 border-t border-line bg-white flex items-center gap-3">
               <input
                 v-model="newMsg"
                 @keydown.enter.prevent="sendMsg"
-                placeholder="พิมพ์ข้อความ..."
-                class="flex-1 h-10 px-4 rounded-full border border-line text-sm text-ink focus:outline-none focus:border-indigo-600"
+                type="text"
+                placeholder="พิมพ์ข้อความตอบกลับ..."
+                class="flex-1 h-11 px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
               />
-              <button @click="sendMsg" :disabled="!newMsg.trim()" class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                <Send class="w-4 h-4" :stroke-width="1.75" />
+              <button
+                @click="sendMsg"
+                :disabled="!newMsg.trim()"
+                type="button"
+                class="h-11 px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                <span>ส่ง</span>
+                <Send class="w-4 h-4" :stroke-width="2" />
               </button>
             </div>
           </template>
         </div>
+
       </div>
     </div>
+
     <Footer />
   </div>
 </template>
