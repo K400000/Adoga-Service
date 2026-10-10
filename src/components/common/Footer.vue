@@ -6,7 +6,7 @@ import { Hotel } from '@lucide/vue'
 
 <template>
   <footer class="bg-ink text-slate-300 py-12 mt-16">
-    <div class="mx-auto max-w-[1200px] px-4 md:px-8">
+    <div class="mx-auto max-w-[1280px] px-4 md:px-8">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
         <!-- Brand -->
         <div>

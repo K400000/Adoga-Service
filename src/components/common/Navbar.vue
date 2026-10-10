@@ -48,8 +48,8 @@ const navLinks = computed(() => {
 </script>
 
 <template>
-  <nav class="sticky top-0 z-40 h-16 bg-white/70 backdrop-blur-md border-b border-line shadow-e2 supports-[not(backdrop-filter)]:bg-white/95">
-    <div class="mx-auto max-w-[1200px] px-4 md:px-8 h-full flex items-center justify-between">
+  <nav class="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b border-line shadow-xs supports-[not(backdrop-filter)]:bg-white/95">
+    <div class="mx-auto max-w-[1280px] px-4 md:px-8 h-full flex items-center justify-between">
       <!-- Logo -->
       <RouterLink to="/home" class="flex items-center gap-2 font-display font-semibold text-xl text-ink no-underline">
         <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center">
