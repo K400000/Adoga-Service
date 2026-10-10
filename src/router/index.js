@@ -34,6 +34,7 @@ const routes = [
   { path: '/manager/guests', component: ManagerGuestList, meta: { access: 'manager' } },
   { path: '/admin', component: AdminDashboard, meta: { access: 'admin' } },
   { path: '/admin/approval', component: AdminApproval, meta: { access: 'admin' } },
+  { path: '/admin/messages', component: ManagerMessage, meta: { access: 'admin' } },
   { path: '/admin/settings', component: AdminSettings, meta: { access: 'admin' } },
 ]
 
@@ -73,7 +74,6 @@ router.beforeEach((to, from, next) => {
     return next(`/auth?redirect=${encodeURIComponent(to.fullPath)}&reason=login_required`)
   }
   if (access !== role) {
-    if (role === 'admin' && to.path === '/manager/messages') return next()
     const home = role === 'manager' ? '/manager' : role === 'admin' ? '/admin' : '/home'
     return next(home)
   }

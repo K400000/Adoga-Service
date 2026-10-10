@@ -10,28 +10,34 @@ import {
 const props = defineProps({
   type: {
     type: String,
-    required: true // 'manager' | 'admin'
+    required: false,
+    default: 'manager' // 'manager' | 'admin'
   }
 })
 
 const router = useRouter()
 const currentUser = computed(() => getCurrentUser())
 
-const title = computed(() => props.type === 'admin' ? 'Adoga Admin' : 'Adoga Manager')
-const subtitle = computed(() => props.type === 'admin' ? 'System Console' : 'Partner Portal')
+const effectiveType = computed(() => {
+  if (currentUser.value?.role === 'admin') return 'admin'
+  return props.type || 'manager'
+})
+
+const title = computed(() => effectiveType.value === 'admin' ? 'Adoga Admin' : 'Adoga Manager')
+const subtitle = computed(() => effectiveType.value === 'admin' ? 'System Console' : 'Partner Portal')
 
 const links = computed(() => {
-  if (props.type === 'admin') {
+  if (effectiveType.value === 'admin') {
     return [
       { to: '/admin', label: 'แดชบอร์ดภาพรวม', icon: LayoutDashboard },
       { to: '/admin/approval', label: 'อนุมัติโรงแรม', icon: CheckSquare },
-      { to: '/manager/messages', label: 'ข้อความระบบ & แชท', icon: MessageCircle },
+      { to: '/admin/messages', label: 'ข้อความระบบ & แชท', icon: MessageCircle },
       { to: '/admin/settings', label: 'ตั้งค่าระบบ', icon: Settings },
     ]
   }
   return [
     { to: '/manager', label: 'ภาพรวม & แดชบอร์ด', icon: LayoutDashboard },
-    { to: '/manager/guests', label: 'จัดการแขก', icon: Users },
+    { to: '/manager/guests', label: 'จัดการลูกค้า', icon: Users },
     { to: '/manager/messages', label: 'ข้อความ & แชท', icon: MessageCircle },
   ]
 })
@@ -50,8 +56,8 @@ function doLogout() {
       <div class="flex flex-col gap-6">
         <!-- Logo -->
         <div class="flex items-center gap-3 px-2">
-          <div :class="['w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm', type === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
-            <ShieldCheck v-if="type === 'admin'" class="w-5 h-5" :stroke-width="2" />
+          <div :class="['w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm', effectiveType === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
+            <ShieldCheck v-if="effectiveType === 'admin'" class="w-5 h-5" :stroke-width="2" />
             <Hotel v-else class="w-5 h-5" :stroke-width="2" />
           </div>
           <div>
@@ -103,8 +109,8 @@ function doLogout() {
     <!-- Mobile Top Navigation Bar (< lg) -->
     <header class="lg:hidden sticky top-0 z-40 bg-white border-b border-line px-4 py-3 flex items-center justify-between shadow-xs">
       <div class="flex items-center gap-2">
-        <div :class="['w-8 h-8 rounded-lg flex items-center justify-center text-white', type === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
-          <ShieldCheck v-if="type === 'admin'" class="w-4 h-4" :stroke-width="2" />
+        <div :class="['w-8 h-8 rounded-lg flex items-center justify-center text-white', effectiveType === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
+          <ShieldCheck v-if="effectiveType === 'admin'" class="w-4 h-4" :stroke-width="2" />
           <Hotel v-else class="w-4 h-4" :stroke-width="2" />
         </div>
         <span class="font-display font-semibold text-sm text-ink">{{ title }}</span>
