@@ -7,6 +7,7 @@ import { useSession } from '../stores/session.js'
 import HotelCard from '../components/common/HotelCard.vue'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
+import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
 import {
   Search, MapPin, Hotel, ChevronDown,
   Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw
@@ -380,6 +381,7 @@ function doSearch() {
       </main>
     </div>
 
+    <HelpFloatingButton />
     <!-- Footer -->
     <Footer />
   </div>

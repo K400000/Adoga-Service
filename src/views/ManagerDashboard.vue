@@ -225,6 +225,7 @@ const hotelStatusDesc = {
   closed: 'ปิดกิจการแล้ว',
 }
 import Sidebar from '../components/common/Sidebar.vue'
+import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
 </script>
 
 <template>
@@ -606,5 +607,7 @@ import Sidebar from '../components/common/Sidebar.vue'
         </div>
       </form>
     </BaseModal>
+    <!-- Help Floating Button -->
+    <HelpFloatingButton />
   </div>
 </template>
