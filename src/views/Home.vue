@@ -8,7 +8,7 @@ import HotelCard from '../components/common/HotelCard.vue'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import {
-  Search, MapPin, Hotel,
+  Search, MapPin, Hotel, ChevronDown,
   Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw
 } from '@lucide/vue'
 
@@ -18,6 +18,44 @@ const { isGuest } = useSession()
 const searchQuery = ref('')
 const filterLocation = ref('all')
 const selectedAmenities = ref([])
+
+// 77 Thai Provinces grouped by region
+const thaiProvincesGrouped = [
+  {
+    region: 'ภาคเหนือ',
+    provinces: ['เชียงใหม่', 'เชียงราย', 'น่าน', 'พะเยา', 'แพร่', 'แม่ฮ่องสอน', 'ลำปาง', 'ลำพูน', 'อุตรดิตถ์']
+  },
+  {
+    region: 'ภาคกลาง',
+    provinces: ['กรุงเทพมหานคร', 'กำแพงเพชร', 'ชัยนาท', 'นครนายก', 'นครปฐม', 'นครสวรรค์', 'นนทบุรี', 'ปทุมธานี', 'พระนครศรีอยุธยา', 'พิจิตร', 'พิษณุโลก', 'เพชรบูรณ์', 'ลพบุรี', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'อ่างทอง', 'อุทัยธานี']
+  },
+  {
+    region: 'ภาคตะวันออกเฉียงเหนือ',
+    provinces: ['กาฬสินธุ์', 'ขอนแก่น', 'ชัยภูมิ', 'นครพนม', 'นครราชสีมา', 'บึงกาฬ', 'บุรีรัมย์', 'มหาสารคาม', 'มุกดาหาร', 'ยโสธร', 'ร้อยเอ็ด', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 'อำนาจเจริญ', 'อุดรธานี', 'อุบลราชธานี']
+  },
+  {
+    region: 'ภาคตะวันออก',
+    provinces: ['จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ตราด', 'ปราจีนบุรี', 'ระยอง', 'สระแก้ว']
+  },
+  {
+    region: 'ภาคตะวันตก',
+    provinces: ['กาญจนบุรี', 'ตาก', 'ประจวบคีรีขันธ์', 'เพชรบุรี', 'ราชบุรี']
+  },
+  {
+    region: 'ภาคใต้',
+    provinces: ['กระบี่', 'ชุมพร', 'ตรัง', 'นครศรีธรรมราช', 'นราธิวาส', 'ปัตตานี', 'พังงา', 'พัทลุง', 'ภูเก็ต', 'ยะลา', 'ระนอง', 'สงขลา', 'สตูล', 'สุราษฎร์ธานี']
+  }
+]
+
+const popularProvinces = [
+  { label: '📍 ทุกจังหวัด', value: 'all' },
+  { label: '🔥 ชลบุรี', value: 'ชลบุรี' },
+  { label: '🔥 เชียงใหม่', value: 'เชียงใหม่' },
+  { label: '🔥 ภูเก็ต', value: 'ภูเก็ต' },
+  { label: '🔥 กรุงเทพฯ', value: 'กรุงเทพ' },
+  { label: '🔥 กระบี่', value: 'กระบี่' },
+  { label: '🔥 ประจวบคีรีขันธ์', value: 'ประจวบ' },
+]
 
 const availableAmenities = [
   { id: 'wifi', label: 'ฟรี Wi-Fi', keyword: 'WiFi', icon: Wifi },
@@ -72,11 +110,6 @@ const filteredHotels = computed(() => {
   return list
 })
 
-const locations = computed(() => {
-  const locs = [...new Set(activeHotels.value.map(h => h.location.split(',')[1]?.trim() || h.location))]
-  return ['all', ...locs]
-})
-
 const featuredHotel = computed(() => activeHotels.value.find(h => h.rating >= 4.5) || activeHotels.value[0])
 
 function doSearch() {
@@ -125,46 +158,64 @@ function doSearch() {
           <!-- White Search Card Content -->
           <div class="bg-white rounded-b-3xl rounded-tr-3xl rounded-tl-none p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800 relative pb-12 space-y-4">
             
-            <!-- Destination Search Input (Full Width) -->
-            <div class="bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
-              <Search class="w-6 h-6 text-slate-400 flex-shrink-0" :stroke-width="2" />
-              <div class="flex-1 min-w-0">
-                <label class="text-[11px] font-bold text-slate-400 uppercase block leading-none mb-1">จุดหมายปลายทาง หรือชื่อที่พัก</label>
-                <input
-                  v-model="searchQuery"
-                  @keydown.enter="doSearch"
-                  type="text"
-                  placeholder="ใส่จุดหมายปลายทางหรือชื่อที่พัก..."
-                  class="w-full bg-transparent text-slate-900 font-semibold text-base sm:text-lg outline-none placeholder-slate-400"
-                />
+            <!-- Grid for Search Query & 77 Province Dropdown Selector -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <!-- Keyword Search Input -->
+              <div class="md:col-span-7 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
+                <Search class="w-6 h-6 text-slate-400 flex-shrink-0" :stroke-width="2" />
+                <div class="flex-1 min-w-0">
+                  <label class="text-[11px] font-bold text-slate-400 uppercase block leading-none mb-1">จุดหมายปลายทาง หรือชื่อที่พัก</label>
+                  <input
+                    v-model="searchQuery"
+                    @keydown.enter="doSearch"
+                    type="text"
+                    placeholder="ใส่จุดหมายปลายทางหรือชื่อที่พัก..."
+                    class="w-full bg-transparent text-slate-900 font-semibold text-base outline-none placeholder-slate-400"
+                  />
+                </div>
+              </div>
+
+              <!-- 77 Province Selector Dropdown -->
+              <div class="md:col-span-5 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3.5 flex items-center gap-2.5 shadow-xs relative">
+                <MapPin class="w-6 h-6 text-blue-600 flex-shrink-0" :stroke-width="2" />
+                <div class="flex-1 min-w-0">
+                  <label class="text-[11px] font-bold text-slate-400 uppercase block leading-none mb-1">เลือกจังหวัด (77 จังหวัด)</label>
+                  <select
+                    v-model="filterLocation"
+                    class="w-full bg-transparent text-slate-900 font-semibold text-sm sm:text-base outline-none cursor-pointer pr-4 appearance-none"
+                  >
+                    <option value="all">📍 ทุกจังหวัด / ทั้งหมด (77 จังหวัด)</option>
+                    <optgroup v-for="group in thaiProvincesGrouped" :key="group.region" :label="`── ${group.region} ──`">
+                      <option v-for="prov in group.provinces" :key="prov" :value="prov">
+                        {{ prov }}
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+                <ChevronDown class="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
               </div>
             </div>
 
-            <!-- Location Filter Chips (Moved inside search card) -->
-            <div>
-              <label class="text-xs font-bold text-slate-500 flex items-center gap-1.5 mb-2">
-                <MapPin class="w-4 h-4 text-blue-600" />
-                <span>เลือกดูตามจังหวัด / ทำเล</span>
-              </label>
-              <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
-                <button
-                  v-for="loc in locations"
-                  :key="loc"
-                  @click="filterLocation = loc"
-                  type="button"
-                  :class="[
-                    'flex-shrink-0 h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all snap-start cursor-pointer border',
-                    filterLocation === loc
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-200 hover:bg-blue-50/50'
-                  ]"
-                >
-                  {{ loc === 'all' ? '📍 ทั้งหมด' : `📍 ${loc}` }}
-                </button>
-              </div>
+            <!-- Popular Destination Quick Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
+              <span class="text-xs font-bold text-slate-400 flex items-center gap-1 flex-shrink-0">ยอดนิยม:</span>
+              <button
+                v-for="pop in popularProvinces"
+                :key="pop.value"
+                @click="filterLocation = pop.value"
+                type="button"
+                :class="[
+                  'flex-shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-all snap-start cursor-pointer border',
+                  (filterLocation === pop.value || (pop.value !== 'all' && filterLocation.includes(pop.value)))
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-200 hover:bg-blue-50/50'
+                ]"
+              >
+                {{ pop.label }}
+              </button>
             </div>
 
-            <!-- Amenity Filter Chips (Moved inside search card) -->
+            <!-- Amenity Filter Chips -->
             <div>
               <div class="flex items-center justify-between mb-2">
                 <label class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
