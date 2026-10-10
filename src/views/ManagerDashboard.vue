@@ -17,7 +17,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import { RouterLink } from 'vue-router'
-import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus } from '@lucide/vue'
+import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText } from '@lucide/vue'
 
 const { session } = useSession()
 
@@ -36,7 +36,26 @@ const revenue = computed(() => {
 const bookingsCount = computed(() => allBookings.value.filter(b => myHotelIds.value.includes(b.hotelId)).length)
 const myRefunds = computed(() => allRefunds.value.filter(r => myHotelIds.value.includes(r.hotelId)))
 
-// Refund modal
+// Refund Detail Modal
+const showDetailModal = ref(false)
+const selectedRefund = ref(null)
+
+function openDetailModal(refund) {
+  selectedRefund.value = refund
+  showDetailModal.value = true
+}
+
+function doApproveFromModal(id) {
+  doApprove(id)
+  showDetailModal.value = false
+}
+
+function openRejectFromModal(id) {
+  showDetailModal.value = false
+  openReject(id)
+}
+
+// Refund Reject modal
 const showRejectModal = ref(false)
 const rejectId = ref('')
 const rejectReason = ref('')
@@ -63,27 +82,41 @@ function doReject() {
 // Hotel Form Modal
 const showHotelModal = ref(false)
 const editingHotelId = ref(null)
+const newImageUrl = ref('')
+
 const hotelForm = ref({
   name: '',
   location: '',
   description: '',
   pricePerNight: 1200,
   discount: 0,
-  imageUrl: '',
+  images: [],
   amenities: ['WiFi ฟรี', 'ที่จอดรถ', 'อาหารเช้า']
 })
 
 const ALL_AMENITIES = ['WiFi ฟรี', 'สระว่ายน้ำ', 'อาหารเช้า', 'ที่จอดรถ', 'ฟิตเนส', 'สปา', 'ร้านอาหาร', 'หาดส่วนตัว']
 
+function addImageLink() {
+  const url = newImageUrl.value.trim()
+  if (!url) return
+  hotelForm.value.images.push(url)
+  newImageUrl.value = ''
+}
+
+function removeImageLink(index) {
+  hotelForm.value.images.splice(index, 1)
+}
+
 function openAddHotel() {
   editingHotelId.value = null
+  newImageUrl.value = ''
   hotelForm.value = {
     name: '',
     location: 'บางแสน, ชลบุรี',
     description: '',
     pricePerNight: 1200,
     discount: 0,
-    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+    images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
     amenities: ['WiFi ฟรี', 'ที่จอดรถ', 'อาหารเช้า']
   }
   showHotelModal.value = true
@@ -96,13 +129,14 @@ function openEditHotel(hotel) {
     }
   }
   editingHotelId.value = hotel.id
+  newImageUrl.value = ''
   hotelForm.value = {
     name: hotel.name,
     location: hotel.location,
     description: hotel.description || '',
     pricePerNight: hotel.pricePerNight,
     discount: hotel.discount || 0,
-    imageUrl: hotel.images?.[0] || '',
+    images: hotel.images && hotel.images.length ? [...hotel.images] : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
     amenities: [...(hotel.amenities || [])]
   }
   showHotelModal.value = true
@@ -122,6 +156,11 @@ function saveHotelForm() {
     return
   }
 
+  if (newImageUrl.value.trim()) {
+    hotelForm.value.images.push(newImageUrl.value.trim())
+    newImageUrl.value = ''
+  }
+
   const payload = {
     managerId: session.value.userId,
     name: hotelForm.value.name,
@@ -130,7 +169,7 @@ function saveHotelForm() {
     pricePerNight: Number(hotelForm.value.pricePerNight),
     discount: Number(hotelForm.value.discount),
     amenities: hotelForm.value.amenities,
-    images: hotelForm.value.imageUrl ? [hotelForm.value.imageUrl] : []
+    images: hotelForm.value.images.length ? hotelForm.value.images : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80']
   }
 
   if (editingHotelId.value) {
@@ -259,6 +298,33 @@ import Sidebar from '../components/common/Sidebar.vue'
                 </template>
               </StatusBanner>
 
+              <!-- Manager Hotel Image Gallery Preview -->
+              <div v-if="hotel.images && hotel.images.length" class="mt-4 pt-4 border-t border-line/60">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-ink-muted uppercase tracking-wider">
+                    🖼️ รูปภาพโรงแรม ({{ hotel.images.length }} รูป)
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-medium">กด "แก้ไขข้อมูล" เพื่อเพิ่ม/ลบลิงก์รูปภาพ</span>
+                </div>
+                <div class="flex gap-3 overflow-x-auto pb-2">
+                  <div
+                    v-for="(img, idx) in hotel.images"
+                    :key="idx"
+                    class="w-32 h-20 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0 bg-slate-100 relative group shadow-xs"
+                  >
+                    <img
+                      :src="img"
+                      :alt="hotel.name"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      @error="$event.target.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'"
+                    />
+                    <span class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
+                      #{{ idx + 1 }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Rooms table -->
               <div class="mt-4">
                 <h4 class="font-medium text-sm text-ink mb-2">รายการห้องพัก</h4>
@@ -334,10 +400,13 @@ import Sidebar from '../components/common/Sidebar.vue'
                   <td class="py-3 px-4 text-ink max-w-xs truncate">{{ r.reason }}</td>
                   <td class="py-3 px-4"><StatusBadge entity="refund" :value="r.status" size="sm" /></td>
                   <td class="py-3 px-4">
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2 items-center">
+                      <BaseButton @click="openDetailModal(r)" variant="ghost" size="sm">
+                        <FileText class="w-3.5 h-3.5 mr-1" /> อ่านรายละเอียด
+                      </BaseButton>
                       <BaseButton v-if="r.status === 'submitted'" @click="doStartReview(r.id)" variant="outline" size="sm">ตรวจสอบ</BaseButton>
-                      <BaseButton v-if="r.status === 'reviewing'" @click="doApprove(r.id)" variant="secondary" size="sm">อนุมัติ</BaseButton>
-                      <BaseButton v-if="r.status === 'reviewing'" @click="openReject(r.id)" variant="danger" size="sm">ปฏิเสธ</BaseButton>
+                      <BaseButton v-if="['submitted', 'reviewing'].includes(r.status)" @click="doApprove(r.id)" variant="secondary" size="sm">อนุมัติ</BaseButton>
+                      <BaseButton v-if="['submitted', 'reviewing'].includes(r.status)" @click="openReject(r.id)" variant="danger" size="sm">ปฏิเสธ</BaseButton>
                     </div>
                   </td>
                 </tr>
@@ -347,6 +416,58 @@ import Sidebar from '../components/common/Sidebar.vue'
         </section>
       </div>
     </div>
+
+    <!-- Refund Detail Modal -->
+    <BaseModal :open="showDetailModal" @close="showDetailModal = false" title="รายละเอียดใบขอคืนเงิน">
+      <div v-if="selectedRefund" class="flex flex-col gap-4">
+        <div class="bg-slate-50 p-4 rounded-xl border border-line space-y-2.5">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-ink-muted">รหัสใบขอคืนเงิน:</span>
+            <span class="font-mono font-bold text-indigo-600">{{ selectedRefund.id }}</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-ink-muted">รหัสการจอง:</span>
+            <span class="font-mono font-semibold text-ink">{{ selectedRefund.bookingId }}</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-ink-muted">สถานะ:</span>
+            <StatusBadge entity="refund" :value="selectedRefund.status" size="sm" />
+          </div>
+          <div class="flex justify-between items-baseline pt-2 border-t border-line/60">
+            <span class="text-sm font-semibold text-ink">ยอดเงินที่ขอคืน:</span>
+            <span class="font-display font-bold text-2xl text-indigo-600 tabular-nums">
+              {{ formatPrice(selectedRefund.amount) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-500 uppercase">เหตุผลในการขอคืนเงิน:</label>
+          <div class="p-3.5 rounded-xl bg-white border border-line text-sm text-ink leading-relaxed font-medium">
+            {{ selectedRefund.reason }}
+          </div>
+        </div>
+
+        <div v-if="selectedRefund.rejectReason" class="space-y-1">
+          <label class="text-xs font-bold text-rose-500 uppercase">เหตุผลที่ปฏิเสธ:</label>
+          <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium">
+            {{ selectedRefund.rejectReason }}
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 justify-end pt-3 border-t border-line">
+          <BaseButton @click="showDetailModal = false" variant="ghost" size="md">ปิด</BaseButton>
+          <template v-if="['submitted', 'reviewing'].includes(selectedRefund.status)">
+            <BaseButton @click="openRejectFromModal(selectedRefund.id)" variant="danger" size="md">
+              ปฏิเสธ
+            </BaseButton>
+            <BaseButton @click="doApproveFromModal(selectedRefund.id)" variant="secondary" size="md">
+              อนุมัติ
+            </BaseButton>
+          </template>
+        </div>
+      </div>
+    </BaseModal>
 
     <!-- Reject modal -->
     <BaseModal :open="showRejectModal" @close="showRejectModal = false" title="ปฏิเสธการคืนเงิน">
@@ -370,8 +491,51 @@ import Sidebar from '../components/common/Sidebar.vue'
           <BaseInput label="ส่วนลด (%)" type="number" v-model="hotelForm.discount" placeholder="0" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-ink mb-1.5">รูปภาพ (URL)</label>
-          <input v-model="hotelForm.imageUrl" placeholder="https://..." class="w-full h-11 px-4 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600" />
+          <label class="block text-sm font-medium text-ink mb-1.5 flex items-center justify-between">
+            <span>รูปภาพโรงแรม (URL Link)</span>
+            <span class="text-xs text-ink-muted">จำนวน {{ hotelForm.images.length }} รูป</span>
+          </label>
+          
+          <div class="flex gap-2 mb-3">
+            <input
+              v-model="newImageUrl"
+              @keydown.enter.prevent="addImageLink"
+              placeholder="วาง URL รูปภาพ (เช่น https://images.unsplash.com/...)"
+              class="flex-1 h-11 px-4 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600 font-mono text-xs"
+            />
+            <BaseButton type="button" @click="addImageLink" variant="secondary" size="sm" class="flex-shrink-0">
+              <Plus class="w-4 h-4 mr-1" /> เพิ่มรูป
+            </BaseButton>
+          </div>
+
+          <!-- Preview Grid -->
+          <div v-if="hotelForm.images.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 border border-line">
+            <div
+              v-for="(img, idx) in hotelForm.images"
+              :key="idx"
+              class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-xs"
+            >
+              <img
+                :src="img"
+                alt="Preview"
+                class="w-full h-full object-cover"
+                @error="$event.target.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'"
+              />
+              <div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  type="button"
+                  @click="removeImageLink(idx)"
+                  class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-colors cursor-pointer"
+                >
+                  ✕ ลบ
+                </button>
+              </div>
+              <span class="absolute bottom-1 left-1 bg-slate-900/70 text-white text-[9px] px-1 py-0.5 rounded font-mono">
+                #{{ idx + 1 }}
+              </span>
+            </div>
+          </div>
+          <p v-else class="text-xs text-rose-500 font-medium">ยังไม่มีรูปภาพ กรุณาใส่อย่างน้อย 1 ลิงก์</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-ink mb-1.5">สิ่งอำนวยความสะดวก</label>

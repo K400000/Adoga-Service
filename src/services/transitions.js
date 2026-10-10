@@ -133,6 +133,9 @@ export function approveRefund(refundId) {
   const refunds = [...(db['adoga_refunds'] || [])]
   const idx = refunds.findIndex(r => r.id === refundId)
   if (idx === -1) throw new Error('Refund not found')
+  if (refunds[idx].status === 'submitted') {
+    transition('refund', refunds[idx], 'reviewing')
+  }
   transition('refund', refunds[idx], 'approved')
   saveRefunds(refunds)
   const refund = refunds[idx]
@@ -151,6 +154,9 @@ export function rejectRefund(refundId, rejectReason) {
   const refunds = [...(db['adoga_refunds'] || [])]
   const idx = refunds.findIndex(r => r.id === refundId)
   if (idx === -1) throw new Error('Refund not found')
+  if (refunds[idx].status === 'submitted') {
+    transition('refund', refunds[idx], 'reviewing')
+  }
   transition('refund', refunds[idx], 'rejected')
   refunds[idx] = { ...refunds[idx], rejectReason }
   saveRefunds(refunds)
