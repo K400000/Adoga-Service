@@ -8,7 +8,7 @@ import HotelCard from '../components/common/HotelCard.vue'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import {
-  Search, MapPin, Calendar, Users, Hotel, ChevronDown,
+  Search, MapPin, Hotel,
   Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw
 } from '@lucide/vue'
 
@@ -18,9 +18,6 @@ const { isGuest } = useSession()
 const searchQuery = ref('')
 const filterLocation = ref('all')
 const selectedAmenities = ref([])
-const checkInDate = ref('2026-10-20')
-const checkOutDate = ref('2026-10-21')
-const guestsCount = ref('2 ท่าน 1 ห้อง')
 
 const availableAmenities = [
   { id: 'wifi', label: 'ฟรี Wi-Fi', keyword: 'WiFi', icon: Wifi },
@@ -94,7 +91,7 @@ function doSearch() {
       <Navbar />
 
       <!-- Hero Banner Section (Full Bleed Edge-to-Edge 100% Screen Width) -->
-      <section class="relative w-full min-h-[460px] sm:min-h-[500px] bg-slate-900 flex flex-col items-center justify-start pt-10 sm:pt-12 pb-16 px-4 sm:px-6 overflow-hidden">
+      <section class="relative w-full min-h-[520px] sm:min-h-[560px] bg-slate-900 flex flex-col items-center justify-start pt-10 sm:pt-12 pb-20 px-4 sm:px-6 overflow-hidden">
         <!-- Edge-to-Edge Background Image (Tropical Beach Ocean Banner) -->
         <img
           src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2500&q=80"
@@ -117,19 +114,19 @@ function doSearch() {
 
         <!-- Floating Agoda-Style Search Card -->
         <div class="relative z-10 w-full max-w-5xl">
-          <!-- Top Service Tab (Hotel Only) -->
-          <div class="flex items-center gap-1 sm:gap-2 px-2 sm:px-4">
-            <button class="flex items-center gap-2 px-6 py-3 rounded-t-2xl bg-white text-blue-600 font-bold text-sm sm:text-base border-t-2 border-blue-600 shadow-md flex-shrink-0 cursor-default">
+          <!-- Top Service Tab (Hotel Only - Flush with Left Edge) -->
+          <div class="flex items-center">
+            <button class="flex items-center gap-2 px-6 py-3 rounded-t-2xl bg-white text-blue-600 font-bold text-sm sm:text-base border-t-2 border-blue-600 shadow-md cursor-default">
               <Hotel class="w-5 h-5 text-blue-600" />
               <span>ค้นหาที่พัก</span>
             </button>
           </div>
 
           <!-- White Search Card Content -->
-          <div class="bg-white rounded-b-3xl rounded-tr-3xl sm:rounded-tl-none p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800 relative pb-10">
+          <div class="bg-white rounded-b-3xl rounded-tr-3xl rounded-tl-none p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800 relative pb-12 space-y-4">
             
             <!-- Destination Search Input (Full Width) -->
-            <div class="mb-4 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3 flex items-center gap-3 shadow-xs">
+            <div class="bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
               <Search class="w-6 h-6 text-slate-400 flex-shrink-0" :stroke-width="2" />
               <div class="flex-1 min-w-0">
                 <label class="text-[11px] font-bold text-slate-400 uppercase block leading-none mb-1">จุดหมายปลายทาง หรือชื่อที่พัก</label>
@@ -143,40 +140,65 @@ function doSearch() {
               </div>
             </div>
 
-            <!-- Grid for Dates and Guests -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
-              <!-- Dates Field -->
-              <div class="md:col-span-7 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 rounded-2xl p-3 flex items-center gap-3 shadow-xs cursor-pointer">
-                <Calendar class="w-6 h-6 text-slate-500 flex-shrink-0" :stroke-width="2" />
-                <div class="flex-1 min-w-0 grid grid-cols-2 gap-2">
-                  <div>
-                    <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">เช็คอิน</label>
-                    <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">19 ต.ค. 2026 (จันทร์)</div>
-                  </div>
-                  <div class="border-l border-slate-200 pl-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">เช็คเอ้าท์</label>
-                    <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">20 ต.ค. 2026 (อังคาร)</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Guests Field -->
-              <div class="md:col-span-5 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 rounded-2xl p-3 flex items-center gap-3 shadow-xs cursor-pointer">
-                <Users class="w-6 h-6 text-slate-500 flex-shrink-0" :stroke-width="2" />
-                <div class="flex-1 min-w-0">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">ผู้เข้าพัก</label>
-                  <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">
-                    {{ guestsCount }}
-                  </div>
-                </div>
-                <ChevronDown class="w-4 h-4 text-slate-400" />
+            <!-- Location Filter Chips (Moved inside search card) -->
+            <div>
+              <label class="text-xs font-bold text-slate-500 flex items-center gap-1.5 mb-2">
+                <MapPin class="w-4 h-4 text-blue-600" />
+                <span>เลือกดูตามจังหวัด / ทำเล</span>
+              </label>
+              <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
+                <button
+                  v-for="loc in locations"
+                  :key="loc"
+                  @click="filterLocation = loc"
+                  type="button"
+                  :class="[
+                    'flex-shrink-0 h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all snap-start cursor-pointer border',
+                    filterLocation === loc
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-200 hover:bg-blue-50/50'
+                  ]"
+                >
+                  {{ loc === 'all' ? '📍 ทั้งหมด' : `📍 ${loc}` }}
+                </button>
               </div>
             </div>
 
-            <!-- Checkbox Filter Option -->
-            <div class="flex items-center gap-2 mb-2 text-xs sm:text-sm text-slate-600">
-              <input type="checkbox" id="homeOnly" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" />
-              <label for="homeOnly" class="cursor-pointer font-medium select-none">แสดงที่พักแบบบ้านหรือหลังและอพาร์ตเมนต์เท่านั้น</label>
+            <!-- Amenity Filter Chips (Moved inside search card) -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                  <Sparkles class="w-4 h-4 text-blue-600" />
+                  <span>สิ่งอำนวยความสะดวก (Amenity Filters)</span>
+                </label>
+                <button
+                  v-if="selectedAmenities.length > 0 || filterLocation !== 'all' || searchQuery"
+                  @click="clearAllFilters"
+                  type="button"
+                  class="text-xs font-medium text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RefreshCw class="w-3.5 h-3.5" />
+                  <span>ล้างตัวกรอง</span>
+                </button>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  v-for="item in availableAmenities"
+                  :key="item.id"
+                  @click="toggleAmenity(item.keyword)"
+                  type="button"
+                  :class="[
+                    'h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border cursor-pointer select-none',
+                    selectedAmenities.includes(item.keyword)
+                      ? 'bg-blue-50 text-blue-700 border-blue-500 shadow-2xs font-semibold'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                  ]"
+                >
+                  <component :is="item.icon" class="w-4 h-4 text-blue-600" />
+                  <span>{{ item.label }}</span>
+                  <Check v-if="selectedAmenities.includes(item.keyword)" class="w-3.5 h-3.5 text-blue-600 font-bold ml-0.5" :stroke-width="3" />
+                </button>
+              </div>
             </div>
 
             <!-- Big Agoda Blue Search Button Floating at Bottom -->
@@ -194,80 +216,7 @@ function doSearch() {
       </section>
 
       <!-- Main Section Container (Full Edge-to-Edge Bleed Layout across Page Width) -->
-      <main class="w-full px-4 sm:px-6 md:px-10 lg:px-14 xl:px-16 py-12 space-y-10 max-w-[1720px] mx-auto">
-
-        <!-- Filter Bar Section (Location & Amenities Filters) -->
-        <section class="w-full bg-white rounded-3xl p-5 sm:p-6 border border-line shadow-xs space-y-5">
-          <!-- 1. Location Filter Chips -->
-          <div>
-            <div class="flex items-center justify-between mb-2.5">
-              <h3 class="text-sm font-semibold text-ink flex items-center gap-1.5">
-                <MapPin class="w-4 h-4 text-blue-600" />
-                <span>เลือกดูตามจังหวัด / ทำเล</span>
-              </h3>
-            </div>
-
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
-              <button
-                v-for="loc in locations"
-                :key="loc"
-                @click="filterLocation = loc"
-                type="button"
-                :class="[
-                  'flex-shrink-0 h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all snap-start cursor-pointer border',
-                  filterLocation === loc
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
-                    : 'bg-slate-50 text-ink-muted border-line hover:border-blue-200 hover:bg-blue-50/50'
-                ]"
-              >
-                {{ loc === 'all' ? '📍 ทั้งหมด' : `📍 ${loc}` }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <div class="border-t border-slate-100" />
-
-          <!-- 2. Amenity Filters Section -->
-          <div>
-            <div class="flex items-center justify-between mb-2.5">
-              <h3 class="text-sm font-semibold text-ink flex items-center gap-1.5">
-                <Sparkles class="w-4 h-4 text-blue-600" />
-                <span>สิ่งอำนวยความสะดวก (Amenity Filters)</span>
-              </h3>
-              
-              <!-- Clear Filters Button -->
-              <button
-                v-if="selectedAmenities.length > 0 || filterLocation !== 'all' || searchQuery"
-                @click="clearAllFilters"
-                type="button"
-                class="text-xs font-medium text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <RefreshCw class="w-3.5 h-3.5" />
-                <span>ล้างตัวกรองทั้งหมด</span>
-              </button>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <button
-                v-for="item in availableAmenities"
-                :key="item.id"
-                @click="toggleAmenity(item.keyword)"
-                type="button"
-                :class="[
-                  'h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border cursor-pointer select-none',
-                  selectedAmenities.includes(item.keyword)
-                    ? 'bg-blue-50 text-blue-700 border-blue-500 shadow-2xs font-semibold'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
-                ]"
-              >
-                <component :is="item.icon" class="w-4 h-4 text-blue-600" />
-                <span>{{ item.label }}</span>
-                <Check v-if="selectedAmenities.includes(item.keyword)" class="w-3.5 h-3.5 text-blue-600 font-bold ml-0.5" :stroke-width="3" />
-              </button>
-            </div>
-          </div>
-        </section>
+      <main class="w-full px-4 sm:px-6 md:px-10 lg:px-14 xl:px-16 py-12 space-y-12 max-w-[1720px] mx-auto">
 
         <!-- Featured Deals (Bento Grid 8+4 cols on full screen width) -->
         <section v-if="featuredHotel" class="w-full space-y-4">
