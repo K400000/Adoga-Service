@@ -44,9 +44,33 @@ export function login(email, password) {
   const user = users.find(u => u.email === email.trim().toLowerCase())
   if (!user) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียน' }
   if (user.password !== password) return { ok: false, message: 'รหัสผ่านไม่ถูกต้อง' }
+  if (user.disabled || user.status === 'disabled') {
+    return { ok: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งานในระบบ' }
+  }
   const session = { userId: user.id, role: user.role }
   db['adoga_current_session'] = session
   return { ok: true, session, user }
+}
+
+export function loginWithGoogleEmail(email) {
+  const users = db['adoga_users'] || []
+  const user = users.find(u => u.email === email.trim().toLowerCase())
+  if (!user) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียนก่อนใช้งาน' }
+  if (user.disabled || user.status === 'disabled') {
+    return { ok: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งานในระบบ' }
+  }
+  const session = { userId: user.id, role: user.role }
+  db['adoga_current_session'] = session
+  return { ok: true, session, user }
+}
+
+export function toggleUserAccess(userId, enabled) {
+  const users = [...(db['adoga_users'] || [])]
+  const idx = users.findIndex(u => u.id === userId)
+  if (idx === -1) return { ok: false, message: 'ไม่พบบัญชีผู้ใช้' }
+  users[idx] = { ...users[idx], disabled: !enabled, status: enabled ? 'active' : 'disabled' }
+  db['adoga_users'] = users
+  return { ok: true, user: users[idx] }
 }
 
 export function logout() {

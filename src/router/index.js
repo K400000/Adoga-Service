@@ -17,6 +17,7 @@ const ManagerMessage = () => import('../views/ManagerMessage.vue')
 const ManagerGuestList = () => import('../views/ManagerGuestList.vue')
 const AdminDashboard = () => import('../views/AdminDashboard.vue')
 const AdminApproval = () => import('../views/AdminApproval.vue')
+const AdminPermissions = () => import('../views/AdminPermissions.vue')
 const AdminSettings = () => import('../views/AdminSettings.vue')
 
 const routes = [
@@ -35,6 +36,7 @@ const routes = [
   { path: '/admin', component: AdminDashboard, meta: { access: 'admin' } },
   { path: '/admin/approval', component: AdminApproval, meta: { access: 'admin' } },
   { path: '/admin/messages', component: ManagerMessage, meta: { access: 'admin' } },
+  { path: '/admin/permissions', component: AdminPermissions, meta: { access: 'admin' } },
   { path: '/admin/settings', component: AdminSettings, meta: { access: 'admin' } },
 ]
 
