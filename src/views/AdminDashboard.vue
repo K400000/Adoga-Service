@@ -69,37 +69,16 @@ const hotelsByStatus = computed(() => {
   for (const h of hotels.value) counts[h.status] = (counts[h.status] || 0) + 1
   return Object.entries(counts)
 })
+import Sidebar from '../components/common/Sidebar.vue'
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex">
+  <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
     <!-- Sidebar -->
-    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-line py-6 px-4 sticky top-0 h-screen">
-      <div class="flex items-center gap-2 mb-8 px-2">
-        <div class="w-8 h-8 bg-rose-600 rounded-xl flex items-center justify-center">
-          <Settings class="w-5 h-5 text-white" :stroke-width="2" />
-        </div>
-        <div>
-          <p class="font-display font-semibold text-sm text-ink">Admin Console</p>
-          <p class="text-xs text-ink-muted">ระบบจัดการ</p>
-        </div>
-      </div>
-      <nav class="flex flex-col gap-1">
-        <RouterLink to="/admin" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-indigo-700 bg-indigo-50">
-          <LayoutDashboard class="w-5 h-5" :stroke-width="1.75" /> แดชบอร์ด
-        </RouterLink>
-        <RouterLink to="/admin/approval" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100">
-          <CheckSquare class="w-5 h-5" :stroke-width="1.75" /> อนุมัติโรงแรม
-          <span class="ml-auto text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{{ hotels.filter(h => h.status === 'pending').length }}</span>
-        </RouterLink>
-        <RouterLink to="/admin/settings" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100">
-          <Settings class="w-5 h-5" :stroke-width="1.75" /> ตั้งค่าระบบ
-        </RouterLink>
-      </nav>
-    </aside>
+    <Sidebar type="admin" />
 
     <!-- Content -->
-    <div class="flex-1 px-4 md:px-8 py-8">
+    <div class="flex-1 min-w-0 lg:ml-64 px-4 md:px-8 py-8">
       <h1 class="font-display font-semibold text-2xl text-ink mb-8">ภาพรวมและสถิติระบบ</h1>
 
       <!-- Stats 4 col -->

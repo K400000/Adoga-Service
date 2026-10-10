@@ -174,36 +174,16 @@ const hotelStatusDesc = {
   suspended: 'หยุดรับจองชั่วคราว',
   closed: 'ปิดกิจการแล้ว',
 }
+import Sidebar from '../components/common/Sidebar.vue'
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex">
+  <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
     <!-- Sidebar -->
-    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-line py-6 px-4 sticky top-0 h-screen overflow-y-auto">
-      <div class="flex items-center gap-2 mb-8 px-2">
-        <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center">
-          <Hotel class="w-5 h-5 text-white" :stroke-width="2" />
-        </div>
-        <div>
-          <p class="font-display font-semibold text-sm text-ink">Adoga Manager</p>
-          <p class="text-xs text-ink-muted">Partner Portal</p>
-        </div>
-      </div>
-      <nav class="flex flex-col gap-1">
-        <RouterLink to="/manager" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-indigo-700 bg-indigo-50">
-          <LayoutDashboard class="w-5 h-5" :stroke-width="1.75" /> ภาพรวม & แดชบอร์ด
-        </RouterLink>
-        <RouterLink to="/manager/guests" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100 transition-colors">
-          <Users class="w-5 h-5" :stroke-width="1.75" /> จัดการแขก
-        </RouterLink>
-        <RouterLink to="/manager/messages" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100 transition-colors">
-          <MessageCircle class="w-5 h-5" :stroke-width="1.75" /> ข้อความ
-        </RouterLink>
-      </nav>
-    </aside>
+    <Sidebar type="manager" />
 
     <!-- Main content -->
-    <div class="flex-1 overflow-auto">
+    <div class="flex-1 min-w-0 lg:ml-64 overflow-auto">
       <div class="mx-auto max-w-[1200px] px-4 md:px-8 py-8">
         <div class="flex items-center justify-between mb-8">
           <h1 class="font-display font-semibold text-2xl text-ink">ภาพรวม & แดชบอร์ด</h1>

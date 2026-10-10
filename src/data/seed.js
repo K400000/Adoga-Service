@@ -1,9 +1,9 @@
-// src/data/seed.js — Run on first load (when adoga_meta.seeded is not true)
+// src/data/seed.js — Run on first load or version bump
 import { set, get } from '../utils/storage.js'
 import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 
-const VERSION = 1
+const VERSION = 2
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -12,6 +12,8 @@ function isoD(n)  { return addDays(n).toISOString() }
 export function runSeed(force = false) {
   const meta = get('adoga_meta')
   if (!force && meta?.seeded && meta?.version === VERSION) return
+
+  const currentSession = get('adoga_current_session') || null
 
   // ── Users ────────────────────────────────────────────────
   const users = [
@@ -29,60 +31,150 @@ export function runSeed(force = false) {
   const hotels = [
     {
       id: 'H001', managerId: 'M001', name: 'Chonburi Sea View', location: 'บางแสน, ชลบุรี',
-      description: 'รีสอร์ทติดทะเลบางแสน วิวทะเลสวยงาม บรรยากาศสงบ เหมาะสำหรับการพักผ่อน',
+      description: 'รีสอร์ทติดทะเลบางแสน วิวทะเลสวยงาม บรรยากาศสงบ เหมาะสำหรับการพักผ่อนของครอบครัวและคู่รัก',
       pricePerNight: 1500, discount: 10, status: 'approved', rejectReason: null,
-      images: HOTEL_IMAGES.H001, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'อาหารเช้า', 'ที่จอดรถ'], rating: 4.5,
+      images: HOTEL_IMAGES.H001, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'อาหารเช้า', 'ที่จอดรถ'], rating: 4.6,
       rooms: [
         mkRoom('H001-R1', 'Standard Sea View', 1500, 2, [mkUnit('101','available'), mkUnit('102','booked'), mkUnit('103','maintenance')]),
-        mkRoom('H001-R2', 'Family Suite', 2800, 4, [mkUnit('201','available'), mkUnit('202','available')]),
+        mkRoom('H001-R2', 'Family Ocean Suite', 2800, 4, [mkUnit('201','available'), mkUnit('202','available')]),
       ],
     },
     {
-      id: 'H002', managerId: 'M001', name: 'Pattaya Beach Resort', location: 'พัทยา, ชลบุรี',
-      description: 'รีสอร์ทพัทยาหาดสวย ใกล้ Walking Street มีสิ่งอำนวยความสะดวกครบครัน',
+      id: 'H002', managerId: 'M001', name: 'Pattaya Beach Resort & Spa', location: 'พัทยา, ชลบุรี',
+      description: 'รีสอร์ทพัทยาหาดสวย ใกล้ Walking Street และแหล่งช้อปปิ้ง พร้อมสปาและสิ่งอำนวยความสะดวกครบครัน',
       pricePerNight: 2200, discount: 15, status: 'approved', rejectReason: null,
-      images: HOTEL_IMAGES.H002, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'สปา', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.3,
+      images: HOTEL_IMAGES.H002, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'สปา', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.4,
       rooms: [
         mkRoom('H002-R1', 'Deluxe Pool View', 2200, 2, [mkUnit('301','available'), mkUnit('302','booked')]),
-        mkRoom('H002-R2', 'Premium Suite', 4500, 4, [mkUnit('401','available'), mkUnit('402','booked')]),
+        mkRoom('H002-R2', 'Premium Oceanfront Suite', 4500, 4, [mkUnit('401','available'), mkUnit('402','booked')]),
       ],
     },
     {
-      id: 'H003', managerId: 'M002', name: 'Sriracha Harbor Hotel', location: 'ศรีราชา, ชลบุรี',
-      description: 'โรงแรมริมอ่าวศรีราชา บรรยากาศเมืองท่าน่ารัก อาหารทะเลสด',
-      pricePerNight: 1200, discount: 0, status: 'approved', rejectReason: null,
-      images: HOTEL_IMAGES.H003, amenities: ['WiFi ฟรี', 'อาหารเช้า', 'ร้านอาหาร'], rating: 4.1,
+      id: 'H003', managerId: 'M002', name: 'Chiang Mai Mountain Haven', location: 'แม่ริม, เชียงใหม่',
+      description: 'รีสอร์ทสไตล์ล้านนากลางหุบเขาแม่ริม สัมผัสหมอกยามเช้า อากาศเย็นสบายตลอดปี พร้อมออนเซ็นส่วนตัว',
+      pricePerNight: 2800, discount: 20, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H003, amenities: ['สระว่ายน้ำน้ำอุ่น', 'WiFi ฟรี', 'สปาและออนเซ็น', 'อาหารเช้าออร์แกนิก', 'ที่จอดรถ'], rating: 4.9,
       rooms: [
-        mkRoom('H003-R1', 'Superior Harbor View', 1200, 2, [mkUnit('501','available'), mkUnit('502','booked')]),
-        mkRoom('H003-R2', 'Deluxe Room', 1800, 2, [mkUnit('601','available'), mkUnit('602','available')]),
+        mkRoom('H003-R1', 'Lanna Mountain Suite', 2800, 2, [mkUnit('501','available'), mkUnit('502','booked'), mkUnit('503','available')]),
+        mkRoom('H003-R2', 'Villa Valley View', 4800, 4, [mkUnit('601','available'), mkUnit('602','available')]),
       ],
     },
     {
-      id: 'H004', managerId: 'M002', name: 'Koh Larn Bungalow', location: 'เกาะล้าน, ชลบุรี',
-      description: 'บังกะโลบนเกาะล้าน หาดทรายขาว น้ำทะเลใส เหมาะสำหรับฮันนีมูน',
-      pricePerNight: 3500, discount: 0, status: 'pending', rejectReason: null,
-      images: HOTEL_IMAGES.H004, amenities: ['หาดส่วนตัว', 'WiFi ฟรี', 'กิจกรรมดำน้ำ'], rating: 4.7,
+      id: 'H004', managerId: 'M002', name: 'Nimman Chic Boutique Hotel', location: 'นิมมานเหมินท์, เชียงใหม่',
+      description: 'โรงแรมบูติกสุดชิคใจกลางถนนนิมมานฯ ตกแต่งสไตล์ Minimal Modern เดินไปคาเฟ่และร้านอาหารชื่อดังได้ง่ายดาย',
+      pricePerNight: 1650, discount: 5, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H004, amenities: ['WiFi ความเร็วสูง', 'คาเฟ่ & บาร์', 'ฟิตเนส', 'ที่จอดรถ', 'บริการรับส่งสนามบิน'], rating: 4.5,
       rooms: [
-        mkRoom('H004-R1', 'Beach Bungalow', 3500, 2, [mkUnit('701','available'), mkUnit('702','available')]),
-        mkRoom('H004-R2', 'Honeymoon Suite', 5500, 2, [mkUnit('801','available')]),
+        mkRoom('H004-R1', 'Urban Minimalist Room', 1650, 2, [mkUnit('701','available'), mkUnit('702','available')]),
+        mkRoom('H004-R2', 'Duplex Loft Suite', 2900, 3, [mkUnit('801','available')]),
       ],
     },
     {
-      id: 'H005', managerId: 'M002', name: 'Sattahip Retreat', location: 'สัตหีบ, ชลบุรี',
-      description: 'รีทรีตสงบย่านสัตหีบ ห่างไกลความวุ่นวาย บรรยากาศธรรมชาติ',
-      pricePerNight: 1800, discount: 0, status: 'rejected', rejectReason: 'รูปภาพไม่ชัดเจน กรุณาอัปโหลดใหม่',
-      images: HOTEL_IMAGES.H005, amenities: ['WiFi ฟรี', 'สวนสวย', 'ที่จอดรถ'], rating: 3.9,
+      id: 'H005', managerId: 'M001', name: 'Phuket Sunset Cliff Villa', location: 'กะตะ, ภูเก็ต',
+      description: 'วิลล่าหรูริมหน้าผาชมวิวพระอาทิตย์ตกดินพาโนรามา พร้อมสระว่ายน้ำส่วนตัว Infinite Pool เหนือระดับ',
+      pricePerNight: 4900, discount: 12, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H005, amenities: ['สระว่ายน้ำส่วนตัว Infinite Pool', 'บริการบัตเลอร์ 24 ชม.', 'ฟิตเนส & สปา', 'บาร์ริมทะเล', 'อาหารเช้าลอยน้ำ'], rating: 4.9,
       rooms: [
-        mkRoom('H005-R1', 'Garden View Room', 1800, 2, [mkUnit('901','available'), mkUnit('902','available')]),
+        mkRoom('H005-R1', 'Oceanfront Pool Villa', 4900, 2, [mkUnit('901','available'), mkUnit('902','booked')]),
+        mkRoom('H005-R2', 'Grand Cliff Top Villa', 8500, 6, [mkUnit('1001','available')]),
       ],
     },
     {
-      id: 'H006', managerId: 'M001', name: 'Bangsaen Boutique', location: 'บางแสน, ชลบุรี',
-      description: 'บูติกโฮเทลสไตล์วินเทจ ใจกลางบางแสน ใกล้ตลาดอาหารทะเล',
-      pricePerNight: 900, discount: 0, status: 'suspended', rejectReason: null,
-      images: HOTEL_IMAGES.H006, amenities: ['WiFi ฟรี', 'อาหารเช้า'], rating: 3.8,
+      id: 'H006', managerId: 'M001', name: 'Patong City Vibe Hotel', location: 'ป่าตอง, ภูเก็ต',
+      description: 'โรงแรมทันสมัยใจกลางหาดป่าตอง ใกล้หาดและห้างสรรพสินค้า Jungceylon เดินทางสะดวกสบาย',
+      pricePerNight: 1350, discount: 10, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H006, amenities: ['สระว่ายน้ำดาดฟ้า', 'WiFi ฟรี', 'ห้องอาหารนานาชาติ', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.2,
       rooms: [
-        mkRoom('H006-R1', 'Classic Room', 900, 2, [mkUnit('1001','available'), mkUnit('1002','available')]),
+        mkRoom('H006-R1', 'Superior City View', 1350, 2, [mkUnit('1101','available'), mkUnit('1102','available'), mkUnit('1103','booked')]),
+        mkRoom('H006-R2', 'Deluxe Balcony Room', 1950, 2, [mkUnit('1201','available'), mkUnit('1202','available')]),
+      ],
+    },
+    {
+      id: 'H007', managerId: 'M002', name: 'Krabi Emerald Bay Resort', location: 'อ่าวนาง, กระบี่',
+      description: 'รีสอร์ทติดหาดอ่าวนาง โอบล้อมด้วยภูเขาหินปูนธรรมชาติ บริการทริปเรือสปีดโบ๊ทไปเกาะพีพีและอ่าวไร่เลย์',
+      pricePerNight: 3200, discount: 15, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H007, amenities: ['สระว่ายน้ำติดชายหาด', 'เรือคายัคฟรี', 'คิดส์คลับ', 'สปาครบวงจร', 'บาร์ค็อกเทล'], rating: 4.8,
+      rooms: [
+        mkRoom('H007-R1', 'Emerald Deluxe Room', 3200, 2, [mkUnit('1301','available'), mkUnit('1302','booked')]),
+        mkRoom('H007-R2', 'Cliffside Beachfront Villa', 5400, 4, [mkUnit('1401','available')]),
+      ],
+    },
+    {
+      id: 'H008', managerId: 'M001', name: 'Hua Hin White Sands Heritage', location: 'หัวหิน, ประจวบคีรีขันธ์',
+      description: 'ที่พักสไตล์โคโลเนียลติดหาดหัวหิน สวนร่มรื่น สระว่ายน้ำทอดยาวสู่หาดทรายขาว เงียบสงบระดับพรีเมียม',
+      pricePerNight: 2600, discount: 10, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H008, amenities: ['สระว่ายน้ำริมหาด', 'สปาไทย', 'อาหารเช้าซีฟู้ด', 'ที่จอดรถ', 'สวนหย่อมสไตล์อังกฤษ'], rating: 4.6,
+      rooms: [
+        mkRoom('H008-R1', 'Colonial Heritage Room', 2600, 2, [mkUnit('1501','available'), mkUnit('1502','available')]),
+        mkRoom('H008-R2', 'Pool Access Suite', 3900, 2, [mkUnit('1601','available'), mkUnit('1602','booked')]),
+      ],
+    },
+    {
+      id: 'H009', managerId: 'M002', name: 'Samui Tropical Sanctuary', location: 'เฉวง, สุราษฎร์ธานี',
+      description: 'แซงชัวรีรีสอร์ทบนเกาะสมุย ล้อมรอบด้วยต้นมะพร้าวและชายหาดส่วนตัว พร้อมบริการโยคะรับอรุณ',
+      pricePerNight: 3800, discount: 18, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H009, amenities: ['สระว่ายน้ำลากูน', 'โยคะริมหาด', 'WiFi ฟรี', 'Beach Club', 'สปาอโรมา'], rating: 4.8,
+      rooms: [
+        mkRoom('H009-R1', 'Tropical Garden Bungalow', 3800, 2, [mkUnit('1701','available'), mkUnit('1702','available')]),
+        mkRoom('H009-R2', 'Beachfront Ocean Villa', 6200, 2, [mkUnit('1801','available')]),
+      ],
+    },
+    {
+      id: 'H010', managerId: 'M001', name: 'Bangkok River Heritage Grand', location: 'เจริญกรุง, กรุงเทพฯ',
+      description: 'โรงแรมหรูริมแม่น้ำเจ้าพระยา ดื่มด่ำวิวเมืองและวัดอรุณฯ ยามค่ำคืน พร้อมเรือรับส่ง BTS สะพานตากสินฟรี',
+      pricePerNight: 3400, discount: 10, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H010, amenities: ['สระว่ายน้ำริมแม่น้ำ', 'ห้องอาหาร Fine Dining', 'Sky Rooftop Bar', 'ฟิตเนส & ซาวน่า', 'เรือข้ามฟากส่วนตัว'], rating: 4.7,
+      rooms: [
+        mkRoom('H010-R1', 'Riverview Executive Room', 3400, 2, [mkUnit('1901','available'), mkUnit('1902','booked')]),
+        mkRoom('H010-R2', 'Chao Phraya Panoramic Suite', 6800, 4, [mkUnit('2001','available')]),
+      ],
+    },
+    {
+      id: 'H011', managerId: 'M002', name: 'Khao Yai Forest Mist Eco Lodge', location: 'ปากช่อง, นครราชสีมา',
+      description: 'อีโค่ลอดจ์เชิงเขาใหญ่ อากาศเย็นสบายตลอดปี ใกล้อุทยานแห่งชาติเขาใหญ่และไร่องุ่น พร้อมลานก่อกองไฟดูดาว',
+      pricePerNight: 2100, discount: 8, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H011, amenities: ['แคมป์ไฟและบาร์บีคิว', 'สระว่ายน้ำกลางแจ้ง', 'จักรยานเสือภูเขาให้เช่า', 'WiFi ฟรี', 'ลานดูดาว'], rating: 4.6,
+      rooms: [
+        mkRoom('H011-R1', 'Glamping Tent Suite', 2100, 2, [mkUnit('2101','available'), mkUnit('2102','available')]),
+        mkRoom('H011-R2', 'Wooden Eco Cottage', 3600, 4, [mkUnit('2201','available')]),
+      ],
+    },
+    {
+      id: 'H012', managerId: 'M002', name: 'Nan Misty Valley Retreat', location: 'ปัว, น่าน',
+      description: 'โฮมสเตย์ระดับพรีเมียมกลางทุ่งนาปัว วิวดอยภูคา สัมผัสวิถีชีวิตสโลว์ไลฟ์ สายหมอกและกาแฟดริปยามเช้า',
+      pricePerNight: 1750, discount: 0, status: 'approved', rejectReason: null,
+      images: HOTEL_IMAGES.H012, amenities: ['ระเบียงชมวิวทุ่งนา 360°', 'เซ็ตอาหารพื้นบ้านน่าน', 'WiFi ฟรี', 'จักรยานฟรี'], rating: 4.8,
+      rooms: [
+        mkRoom('H012-R1', 'Rice Field View Room', 1750, 2, [mkUnit('2301','available'), mkUnit('2302','available')]),
+        mkRoom('H012-R2', 'Doi Phu Kha Wooden Suite', 2800, 4, [mkUnit('2401','available')]),
+      ],
+    },
+    {
+      id: 'H013', managerId: 'M001', name: 'Koh Chang Marine Island Resort', location: 'เกาะช้าง, ตราด',
+      description: 'รีสอร์ทติดทะเลฝั่งอ่าวไทย หาดคลองพร้าว น้ำใส ปะการังสมบูรณ์ (รอการอนุมัติเข้าระบบจาก Admin)',
+      pricePerNight: 2400, discount: 15, status: 'pending', rejectReason: null,
+      images: HOTEL_IMAGES.H013, amenities: ['อุปกรณ์ดำน้ำตื้น', 'สระว่ายน้ำกลางแจ้ง', 'WiFi ฟรี', 'เรือคายัค'], rating: 4.4,
+      rooms: [
+        mkRoom('H013-R1', 'Island View Deluxe', 2400, 2, [mkUnit('2501','available'), mkUnit('2502','available')]),
+        mkRoom('H013-R2', 'Sunset Sea Villa', 4200, 2, [mkUnit('2601','available')]),
+      ],
+    },
+    {
+      id: 'H014', managerId: 'M002', name: 'Rayong Coastal Breeze Hotel', location: 'แกลง, ระยอง',
+      description: 'โรงแรมริมหาดแม่พิมพ์ ระยอง ใกล้สวนผลไม้และตลาดอาหารทะเลสด',
+      pricePerNight: 1600, discount: 0, status: 'rejected', rejectReason: 'ข้อมูลใบอนุญาตโรงแรมไม่ครบถ้วนและภาพถ่ายไม่ชัดเจน กรุณาแก้ไข',
+      images: HOTEL_IMAGES.H014, amenities: ['สระว่ายน้ำ', 'อาหารเช้า', 'ที่จอดรถ'], rating: 3.7,
+      rooms: [
+        mkRoom('H014-R1', 'Coastal Deluxe Room', 1600, 2, [mkUnit('2701','available'), mkUnit('2702','available')]),
+      ],
+    },
+    {
+      id: 'H015', managerId: 'M001', name: 'Ayutthaya Riverside Boutique', location: 'พระนครศรีอยุธยา, พระนครศรีอยุธยา',
+      description: 'ที่พักริมแม่น้ำป่าสัก ใกล้โบราณสถานวัดมหาธาตุ ตกแต่งสไตล์ไทยโมเดิร์น (ปิดปรับปรุงระบบชั่วคราว)',
+      pricePerNight: 1950, discount: 0, status: 'suspended', rejectReason: null,
+      images: HOTEL_IMAGES.H015, amenities: ['สระว่ายน้ำริมน้ำ', 'ร้านอาหารริมน้ำ', 'WiFi ฟรี', 'ที่จอดรถ'], rating: 4.3,
+      rooms: [
+        mkRoom('H015-R1', 'Heritage River Room', 1950, 2, [mkUnit('2801','available'), mkUnit('2802','available')]),
       ],
     },
   ]
@@ -91,58 +183,60 @@ export function runSeed(force = false) {
   const bookings = [
     { id:'B001', userId:'U001', hotelId:'H001', roomId:'H001-R1', roomNo:'102', guests:2, checkIn: isoD(22), checkOut: isoD(24), nights:2, totalPrice:2700, status:'pending_payment', cancelReason:null, paymentMethod:'QR', paymentStatus:'waiting', createdAt: isoH(-1), expiresAt: isoH(11), checkedInAt:null, checkedOutAt:null },
     { id:'B002', userId:'U001', hotelId:'H002', roomId:'H002-R1', roomNo:'302', guests:2, checkIn: isoD(-5), checkOut: isoD(-3), nights:2, totalPrice:3740, status:'confirmed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-7), expiresAt: isoH(-155), checkedInAt:null, checkedOutAt:null },
-    { id:'B003', userId:'U002', hotelId:'H001', roomId:'H001-R2', roomNo:'201', guests:3, checkIn: isoD(-2), checkOut: isoD(1),  nights:3, totalPrice:7560, status:'confirmed', cancelReason:null, paymentMethod:'BANK_TRANSFER', paymentStatus:'success', createdAt: isoD(-4), expiresAt: isoH(-83), checkedInAt: isoD(-1), checkedOutAt:null },
-    { id:'B004', userId:'U001', hotelId:'H001', roomId:'H001-R1', roomNo:'101', guests:2, checkIn: isoD(-8), checkOut: isoD(-6), nights:2, totalPrice:2700, status:'completed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-10), expiresAt: isoH(-228), checkedInAt: isoD(-8), checkedOutAt: isoD(-6) },
-    { id:'B005', userId:'U002', hotelId:'H003', roomId:'H003-R1', roomNo:'501', guests:2, checkIn: isoD(5),  checkOut: isoD(7),  nights:2, totalPrice:2400, status:'cancelled', cancelReason:'expired', paymentMethod:null, paymentStatus:'waiting', createdAt: isoD(-2), expiresAt: isoD(-1), checkedInAt:null, checkedOutAt:null },
+    { id:'B003', userId:'U002', hotelId:'H003', roomId:'H003-R1', roomNo:'502', guests:2, checkIn: isoD(10), checkOut: isoD(13), nights:3, totalPrice:6720, status:'confirmed', cancelReason:null, paymentMethod:'BANK_TRANSFER', paymentStatus:'success', createdAt: isoD(-4), expiresAt: isoH(-83), checkedInAt:null, checkedOutAt:null },
+    { id:'B004', userId:'U001', hotelId:'H005', roomId:'H005-R1', roomNo:'902', guests:2, checkIn: isoD(-8), checkOut: isoD(-6), nights:2, totalPrice:8624, status:'completed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-10), expiresAt: isoH(-228), checkedInAt: isoD(-8), checkedOutAt: isoD(-6) },
+    { id:'B005', userId:'U002', hotelId:'H007', roomId:'H007-R1', roomNo:'1302', guests:2, checkIn: isoD(5), checkOut: isoD(7), nights:2, totalPrice:5440, status:'confirmed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-2), expiresAt: isoD(-1), checkedInAt:null, checkedOutAt:null },
     { id:'B006', userId:'U002', hotelId:'H002', roomId:'H002-R1', roomNo:'301', guests:2, checkIn: isoD(-15), checkOut: isoD(-13), nights:2, totalPrice:3740, status:'cancelled', cancelReason:'refunded', paymentMethod:'QR', paymentStatus:'refunded', createdAt: isoD(-17), expiresAt: isoH(-385), checkedInAt:null, checkedOutAt:null },
-    { id:'B007', userId:'U002', hotelId:'H003', roomId:'H003-R1', roomNo:'502', guests:2, checkIn: isoD(10), checkOut: isoD(12), nights:2, totalPrice:2400, status:'confirmed', cancelReason:null, paymentMethod:'BANK_TRANSFER', paymentStatus:'success', createdAt: isoD(-3), expiresAt: isoH(-59), checkedInAt:null, checkedOutAt:null },
+    { id:'B007', userId:'U002', hotelId:'H010', roomId:'H010-R1', roomNo:'1902', guests:2, checkIn: isoD(10), checkOut: isoD(12), nights:2, totalPrice:6120, status:'confirmed', cancelReason:null, paymentMethod:'BANK_TRANSFER', paymentStatus:'success', createdAt: isoD(-3), expiresAt: isoH(-59), checkedInAt:null, checkedOutAt:null },
     { id:'B008', userId:'U002', hotelId:'H001', roomId:'H001-R2', roomNo:'202', guests:2, checkIn: isoD(15), checkOut: isoD(17), nights:2, totalPrice:5040, status:'pending_payment', cancelReason:null, paymentMethod:'QR', paymentStatus:'failed', createdAt: isoH(-7), expiresAt: isoH(5), checkedInAt:null, checkedOutAt:null },
   ]
 
   // ── Refunds ───────────────────────────────────────────────
   const refunds = [
     { id:'RF001', bookingId:'B002', userId:'U001', hotelId:'H002', amount:3740, reason:'เปลี่ยนแผนการเดินทาง', status:'reviewing', rejectReason:null, createdAt: isoH(-2) },
-    { id:'RF002', bookingId:'B006', userId:'U002', hotelId:'H002', amount:3740, reason:'ป่วย', status:'approved', rejectReason:null, createdAt: isoD(-5) },
-    { id:'RF003', bookingId:'B007', userId:'U002', hotelId:'H003', amount:2400, reason:'ไม่ต้องการเข้าพักแล้ว', status:'rejected', rejectReason:'ไม่เข้าเงื่อนไขการคืนเงินภายใน 24 ชม.', createdAt: isoD(-3) },
+    { id:'RF002', bookingId:'B006', userId:'U002', hotelId:'H002', amount:3740, reason:'ป่วย กะทันหัน', status:'approved', rejectReason:null, createdAt: isoD(-5) },
+    { id:'RF003', bookingId:'B007', userId:'U002', hotelId:'H010', amount:6120, reason:'ติดธุระด่วน', status:'rejected', rejectReason:'ไม่เข้าเงื่อนไขการคืนเงินภายในระยะเวลาที่กำหนด', createdAt: isoD(-3) },
   ]
 
   // ── Reviews ───────────────────────────────────────────────
   const reviews = [
-    { id:'R001', hotelId:'H001', userId:'U001', rating:5, comment:'วิวสวยมากครับ ทีมงานดูแลดีมาก', date: isoD(-5) },
-    { id:'R002', hotelId:'H001', userId:'U002', rating:4, comment:'ห้องสะอาด พนักงานน่ารัก', date: isoD(-10) },
-    { id:'R003', hotelId:'H002', userId:'U002', rating:5, comment:'ใกล้หาด เดินสบาย อาหารเช้าอร่อย', date: isoD(-12) },
-    { id:'R004', hotelId:'H002', userId:'U001', rating:4, comment:'สระว่ายน้ำสวยมาก ราคาคุ้มค่า', date: isoD(-8) },
-    { id:'R005', hotelId:'H003', userId:'U001', rating:4, comment:'อาหารทะเลสดมาก บรรยากาศดี', date: isoD(-6) },
-    { id:'R006', hotelId:'H003', userId:'U002', rating:3, comment:'ทำเลดี แต่ห้องเล็กนิดหน่อย', date: isoD(-9) },
+    { id:'R001', hotelId:'H001', userId:'U001', rating:5, comment:'วิวสวยมากครับ ทีมงานดูแลดีมาก บรรยากาศติดหาดบางแสน', date: isoD(-5) },
+    { id:'R002', hotelId:'H001', userId:'U002', rating:4, comment:'ห้องสะอาด พนักงานน่ารัก อาหารเช้าหลากหลาย', date: isoD(-10) },
+    { id:'R003', hotelId:'H002', userId:'U002', rating:5, comment:'ใกล้หาดพัทยา เดินสบาย สระว่ายน้ำใหญ่มาก', date: isoD(-12) },
+    { id:'R004', hotelId:'H003', userId:'U001', rating:5, comment:'อากาศเชียงใหม่ดีมาก หมอกตอนเช้าสวยประทับใจสุดๆ', date: isoD(-8) },
+    { id:'R005', hotelId:'H005', userId:'U002', rating:5, comment:'วิลล่าริมหน้าผาภูเก็ตสวยสมราคา สระว่ายน้ำส่วนตัวฟินมาก', date: isoD(-6) },
+    { id:'R006', hotelId:'H007', userId:'U001', rating:5, comment:'กระบี่สวยมาก โรงแรมติดหาดอ่าวนาง สะดวกสุดๆ', date: isoD(-9) },
+    { id:'R007', hotelId:'H010', userId:'U002', rating:5, comment:'วิวแม่น้ำเจ้าพระยาตอนกลางคืนสวยงาม มีเรือรับส่ง BTS สะดวก', date: isoD(-4) },
+    { id:'R008', hotelId:'H012', userId:'U001', rating:5, comment:'วิวดอยภูคาและทุ่งนาเขียวขจี อากาศดีมาก กาแฟดริปอร่อย', date: isoD(-2) },
   ]
 
   // ── Messages ──────────────────────────────────────────────
   const messages = [
     { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-3) },
-    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'ได้ครับ เริ่มตั้งแต่ 12:00 น.', sentAt: isoH(-2) },
-    { id:'MSG003', hotelId:'H002', userId:'U001', sender:'user',    text:'มีที่จอดรถไหมครับ', sentAt: isoH(-5) },
-    { id:'MSG004', hotelId:'H002', userId:'U001', sender:'manager', text:'มีครับ ที่จอดรถฟรี 1 คัน/ห้อง', sentAt: isoH(-4) },
+    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'ได้ครับ เริ่มตั้งแต่ 12:00 น. หากห้องพักพร้อมทำความสะอาดแล้ว', sentAt: isoH(-2) },
+    { id:'MSG003', hotelId:'H003', userId:'U001', sender:'user',    text:'มีบริการรถรับส่งจากสนามบินเชียงใหม่ไหมครับ', sentAt: isoH(-5) },
+    { id:'MSG004', hotelId:'H003', userId:'U001', sender:'manager', text:'มีบริการครับ สามารถแจ้งเที่ยวบินล่วงหน้าได้เลยครับ', sentAt: isoH(-4) },
   ]
 
   // ── Settings & Filler Bookings ────────────────────────────
   const settings = { enableRefund: false }
 
-  // Filler bookings for charts (~40 items, completed, spread over 12 months)
+  // Filler bookings for charts (~50 items, completed, spread over 12 months)
   const fillers = []
-  const fillerHotels = ['H001','H002','H003']
-  for (let i = 0; i < 40; i++) {
+  const fillerHotels = ['H001','H002','H003','H004','H005','H007','H008','H010']
+  for (let i = 0; i < 50; i++) {
     const daysBack = Math.floor(Math.random() * 365)
     fillers.push({
       id: `B1${String(i).padStart(2,'0')}`,
       userId: i % 2 === 0 ? 'U001' : 'U002',
-      hotelId: fillerHotels[i % 3],
-      roomId: `${fillerHotels[i % 3]}-R1`,
+      hotelId: fillerHotels[i % fillerHotels.length],
+      roomId: `${fillerHotels[i % fillerHotels.length]}-R1`,
       roomNo: '999',
       guests: 2,
       checkIn: isoD(-daysBack - 3),
       checkOut: isoD(-daysBack - 1),
       nights: 2,
-      totalPrice: [2700, 3740, 2400, 5040][i % 4],
+      totalPrice: [2700, 3740, 4480, 5040, 8624, 6120][i % 6],
       status: 'completed',
       cancelReason: null,
       paymentMethod: 'QR',
@@ -162,6 +256,7 @@ export function runSeed(force = false) {
   set('adoga_reviews', reviews)
   set('adoga_messages', messages)
   set('adoga_settings', settings)
-  set('adoga_current_session', null)
+  set('adoga_current_session', currentSession)
   set('adoga_meta', { seeded: true, version: VERSION })
 }
+

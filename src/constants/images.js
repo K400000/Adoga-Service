@@ -1,30 +1,67 @@
 // src/constants/images.js
-// All hotel image URLs in one place — swap for real URLs later
+// All hotel image URLs in one place — curated high quality travel photos
 export const HOTEL_IMAGES = {
   H001: [
-    'https://placehold.co/800x500/4F46E5/ffffff?text=Chonburi+Sea+View+1',
-    'https://placehold.co/800x500/4F46E5/ffffff?text=Chonburi+Sea+View+2',
+    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
   ],
   H002: [
-    'https://placehold.co/800x500/0891B2/ffffff?text=Pattaya+Beach+1',
-    'https://placehold.co/800x500/0891B2/ffffff?text=Pattaya+Beach+2',
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80',
   ],
   H003: [
-    'https://placehold.co/800x500/059669/ffffff?text=Sriracha+Harbor+1',
-    'https://placehold.co/800x500/059669/ffffff?text=Sriracha+Harbor+2',
+    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=800&q=80',
   ],
   H004: [
-    'https://placehold.co/800x500/D97706/ffffff?text=Koh+Larn+1',
-    'https://placehold.co/800x500/D97706/ffffff?text=Koh+Larn+2',
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
   ],
   H005: [
-    'https://placehold.co/800x500/7C3AED/ffffff?text=Sattahip+1',
-    'https://placehold.co/800x500/7C3AED/ffffff?text=Sattahip+2',
+    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80',
   ],
   H006: [
-    'https://placehold.co/800x500/DB2777/ffffff?text=Bangsaen+Boutique+1',
-    'https://placehold.co/800x500/DB2777/ffffff?text=Bangsaen+Boutique+2',
+    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
+  ],
+  H007: [
+    'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80',
+  ],
+  H008: [
+    'https://images.unsplash.com/photo-1561501900-3701fa6a0864?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80',
+  ],
+  H009: [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1512353087810-25dfcd100962?auto=format&fit=crop&w=800&q=80',
+  ],
+  H010: [
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=800&q=80',
+  ],
+  H011: [
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80',
+  ],
+  H012: [
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80',
+  ],
+  H013: [
+    'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=800&q=80',
+  ],
+  H014: [
+    'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80',
+  ],
+  H015: [
+    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1549294413-26f195200c16?auto=format&fit=crop&w=800&q=80',
   ],
 }
 
-export const FALLBACK_IMAGE = 'https://placehold.co/800x500/E4E7F0/5B6078?text=No+Image'
+export const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
+

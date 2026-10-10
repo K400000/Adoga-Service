@@ -7,6 +7,7 @@ import { checkIn, checkOut } from '../services/transitions.js'
 import { formatDate, formatPrice } from '../utils/date.js'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import BaseButton from '../components/common/BaseButton.vue'
+import Sidebar from '../components/common/Sidebar.vue'
 
 const { session } = useSession()
 const myHotelIds = computed(() => (db['adoga_hotels'] || []).filter(h => h.managerId === session.value?.userId).map(h => h.id))
@@ -21,16 +22,9 @@ function doCheckOut(id) { checkOut(id) }
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex">
-    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-line py-6 px-4 sticky top-0 h-screen">
-      <p class="text-xs font-medium text-ink-muted mb-4 px-2">MANAGER PORTAL</p>
-      <nav class="flex flex-col gap-1">
-        <router-link to="/manager" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100">ภาพรวม</router-link>
-        <router-link to="/manager/guests" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-indigo-700 bg-indigo-50">จัดการแขก</router-link>
-        <router-link to="/manager/messages" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100">ข้อความ</router-link>
-      </nav>
-    </aside>
-    <div class="flex-1 px-4 md:px-8 py-8">
+  <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
+    <Sidebar type="manager" />
+    <div class="flex-1 min-w-0 lg:ml-64 px-4 md:px-8 py-8">
       <h1 class="font-display font-semibold text-2xl text-ink mb-6">จัดการแขก (Check-in / Check-out)</h1>
       <div class="bg-white rounded-2xl border border-line overflow-hidden">
         <table class="w-full text-sm">

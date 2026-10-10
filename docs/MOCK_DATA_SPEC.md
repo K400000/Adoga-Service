@@ -73,18 +73,27 @@ Schema:
 - ราคาที่จ่ายจริง = `nights × room.price × (1 - discount/100)`
 - `images`: ผู้ใช้จะส่ง URL จริงมาให้ภายหลัง → ระหว่างนี้ใช้ placehold.co และเก็บ URL ไว้ที่เดียว (`constants/images.js`) เพื่อแก้ง่าย
 
-**Seed (6 โรงแรม ครอบคลุมทุก status):**
+**Seed (15 โรงแรม ครอบคลุมหลากหลายจังหวัดและทุก Status):**
 
-| id | ชื่อ | ทำเล | manager | status | หมายเหตุ |
+| id | ชื่อ | จังหวัด/ทำเล | manager | status | หมายเหตุ |
 |---|---|---|---|---|---|
-| H001 | Chonburi Sea View | บางแสน | M001 | `active` | มีห้องครบ 3 สถานะ (available/booked/maintenance) |
-| H002 | Pattaya Beach Resort | พัทยา | M001 | `active` | discount 15 |
-| H003 | Sriracha Harbor Hotel | ศรีราชา | M002 | `active` | |
-| H004 | Koh Larn Bungalow | เกาะล้าน | M002 | `pending` | ให้ Admin อนุมัติตอนเดโม |
-| H005 | Sattahip Retreat | สัตหีบ | M002 | `rejected` | `rejectReason: "รูปภาพไม่ชัดเจน กรุณาอัปโหลดใหม่"` |
-| H006 | Bangsaen Boutique | บางแสน | M001 | `temp_closed` | |
+| H001 | Chonburi Sea View | บางแสน, ชลบุรี | M001 | `approved` | มีห้องครบ 3 สถานะ (available/booked/maintenance) |
+| H002 | Pattaya Beach Resort & Spa | พัทยา, ชลบุรี | M001 | `approved` | discount 15%, สปาครบวงจร |
+| H003 | Chiang Mai Mountain Haven | แม่ริม, เชียงใหม่ | M002 | `approved` | discount 20%, สไตล์ล้านนากลางหุบเขา |
+| H004 | Nimman Chic Boutique Hotel | นิมมานเหมินท์, เชียงใหม่ | M002 | `approved` | บูติกโฮเทลใจกลางนิมมานฯ |
+| H005 | Phuket Sunset Cliff Villa | กะตะ, ภูเก็ต | M001 | `approved` | วิลล่าริมหน้าผา วิวพระอาทิตย์ตกดินพาโนรามา |
+| H006 | Patong City Vibe Hotel | ป่าตอง, ภูเก็ต | M001 | `approved` | ใจกลางหาดป่าตอง เดินทางสะดวก |
+| H007 | Krabi Emerald Bay Resort | อ่าวนาง, กระบี่ | M002 | `approved` | ติดหาดอ่าวนาง วิวหน้าผาหินปูน |
+| H008 | Hua Hin White Sands Heritage | หัวหิน, ประจวบคีรีขันธ์ | M001 | `approved` | สไตล์โคโลเนียลติดหาดหัวหิน |
+| H009 | Samui Tropical Sanctuary | เฉวง, สุราษฎร์ธานี | M002 | `approved` | แซงชัวรีรีสอร์ทติดหาดเกาะสมุย |
+| H010 | Bangkok River Heritage Grand | เจริญกรุง, กรุงเทพฯ | M001 | `approved` | หรูริมแม่น้ำเจ้าพระยา พร้อมเรือรับส่ง BTS |
+| H011 | Khao Yai Forest Mist Eco Lodge | ปากช่อง, นครราชสีมา | M002 | `approved` | อีโค่ลอดจ์เชิงเขาใหญ่ ดูดาว |
+| H012 | Nan Misty Valley Retreat | ปัว, น่าน | M002 | `approved` | โฮมสเตย์วิวทุ่งนาและดอยภูคา |
+| H013 | Koh Chang Marine Island Resort | เกาะช้าง, ตราด | M001 | `pending` | สำหรับทดสอบการอนุมัติโรงแรมของ Admin |
+| H014 | Rayong Coastal Breeze Hotel | แกลง, ระยอง | M002 | `rejected` | สำหรับทดสอบกรณีโรงแรมถูกปฏิเสธ |
+| H015 | Ayutthaya Riverside Boutique | พระนครศรีอยุธยา, พระนครศรีอยุธยา | M001 | `suspended` | ปิดปรับปรุงระบบชั่วคราว |
 
-แต่ละโรงแรม 2 room types × 2–3 units (เขียนด้วย helper ไม่ต้องพิมพ์มือทั้งหมด)
+แต่ละโรงแรมมี 1–2 ประเภทห้องพัก (Room Types) และมีห้องย่อย (Units) ครบถ้วนพร้อมประวัติสถานะ
 
 ---
 

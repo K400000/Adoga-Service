@@ -18,19 +18,13 @@ function resetData() {
     window.location.reload()
   }
 }
+import Sidebar from '../components/common/Sidebar.vue'
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex">
-    <aside class="hidden lg:flex w-64 flex-col bg-white border-r border-line py-6 px-4 sticky top-0 h-screen">
-      <p class="text-xs font-medium text-ink-muted mb-4 px-2">ADMIN CONSOLE</p>
-      <nav class="flex flex-col gap-1">
-        <RouterLink to="/admin" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100"><LayoutDashboard class="w-5 h-5" :stroke-width="1.75" /> แดชบอร์ด</RouterLink>
-        <RouterLink to="/admin/approval" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-ink-muted hover:bg-slate-100"><CheckSquare class="w-5 h-5" :stroke-width="1.75" /> อนุมัติโรงแรม</RouterLink>
-        <RouterLink to="/admin/settings" class="flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-indigo-700 bg-indigo-50"><Settings class="w-5 h-5" :stroke-width="1.75" /> ตั้งค่า</RouterLink>
-      </nav>
-    </aside>
-    <div class="flex-1 px-4 md:px-8 py-8">
+  <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
+    <Sidebar type="admin" />
+    <div class="flex-1 min-w-0 lg:ml-64 px-4 md:px-8 py-8">
       <h1 class="font-display font-semibold text-2xl text-ink mb-8">ตั้งค่าระบบ</h1>
 
       <div class="flex flex-col gap-4 max-w-xl">
