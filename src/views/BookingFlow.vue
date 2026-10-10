@@ -1,6 +1,6 @@
 <script setup>
 // src/views/BookingFlow.vue
-import { computed, ref, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
@@ -121,6 +121,23 @@ const bookingSteps = computed(() => {
     { key: 'confirmed', label: 'ยืนยันแล้ว', done: b.status === 'completed', current: b.status === 'confirmed', cancelled: isCancelled },
     { key: 'completed', label: 'เสร็จสิ้น', done: b.status === 'completed', current: false, cancelled: false },
   ]
+})
+
+onMounted(() => {
+  const bId = route.query.bookingId
+  const bookings = db['adoga_bookings'] || []
+  let pending = null
+  if (bId) {
+    pending = bookings.find(b => b.id === bId && b.userId === session.value?.userId && b.status === 'pending_payment')
+  }
+  if (!pending && existingBooking.value) {
+    pending = existingBooking.value
+  }
+  if (pending) {
+    booking.value = pending
+    step.value = 'payment'
+    startCountdown()
+  }
 })
 
 onUnmounted(() => { if (timer) clearInterval(timer) })

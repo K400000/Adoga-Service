@@ -503,6 +503,16 @@ function printDocument() {
                     <span>{{ getReviewForBooking(b.id) ? 'แก้ไขรีวิว' : 'เขียนรีวิวโรงแรม' }}</span>
                   </button>
 
+                  <!-- Button: ชำระเงิน (Proceed to Payment for pending bookings) -->
+                  <router-link
+                    v-if="b.status === 'pending_payment'"
+                    :to="`/booking/${b.hotelId}?roomId=${b.roomId}&bookingId=${b.id}`"
+                    class="h-10 px-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all no-underline shadow-md shadow-emerald-600/20 cursor-pointer"
+                  >
+                    <CreditCard class="w-4 h-4" />
+                    <span>ชำระเงิน</span>
+                  </router-link>
+
                   <BaseButton
                     v-if="b.status === 'pending_payment'"
                     @click="doCancelBooking(b.id)"
