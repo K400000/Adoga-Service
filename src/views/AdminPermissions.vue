@@ -11,7 +11,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import { 
-  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search
+  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search, Lock
 } from '@lucide/vue'
 
 const searchQuery = ref('')
@@ -27,6 +27,8 @@ const newHotelName = ref('')
 const newPassword = ref('Adoga1234')
 const modalError = ref('')
 const modalLoading = ref(false)
+
+const todayFormatted = computed(() => formatDate(new Date().toISOString()))
 
 const allUsers = computed(() => db['adoga_users'] || [])
 const hotels = computed(() => db['adoga_hotels'] || [])
@@ -317,53 +319,61 @@ async function handleAddManager() {
       </div>
     </div>
 
-    <!-- Modal: Admin สร้าง Gmail และระบุ Username + ชื่อโรงแรม -->
+    <!-- Modal: Admin สร้าง Gmail และเพิ่มผู้จัดการโรงแรม -->
     <BaseModal
       v-model="showAddModal"
-      title="สร้าง Gmail & กำหนดสิทธิ์ผู้จัดการโรงแรมใหม่"
+      title="สร้าง Gmail & เพิ่มผู้จัดการโรงแรม"
       size="md"
     >
       <form @submit.prevent="handleAddManager" class="flex flex-col gap-4 py-2">
-        <p class="text-xs text-ink-muted">
-          บันทึก Gmail, Username/ชื่อเล่น และชื่อโรงแรมเพื่อสร้างบัญชี Manager เข้าใช้งานในระบบ
+        <p class="text-xs text-slate-500">
+          กรอกข้อมูลเพื่อสร้างบัญชี Gmail ใหม่สำหรับผู้จัดการโรงแรมและกำหนดสิทธิ์การเข้าใช้งาน
         </p>
 
         <div v-if="modalError" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
           {{ modalError }}
         </div>
 
+        <!-- Gmail -->
         <BaseInput
-          label="Gmail ผู้จัดการโรงแรม"
+          label="Gmail"
           type="email"
           v-model="newGmail"
-          placeholder="เช่น manager.seaview@gmail.com หรือ xxx@hotel.co"
+          placeholder="เช่น manager.hotel@gmail.com"
           required
         />
 
-        <BaseInput
-          label="Username / ชื่อเล่นผู้จัดการ"
-          v-model="newNickname"
-          placeholder="เช่น Somchai, Chai_Manager"
-          required
-        />
-
+        <!-- ชื่อโรงแรม -->
         <BaseInput
           label="ชื่อโรงแรม"
           v-model="newHotelName"
-          placeholder="เช่น Chonburi Grand Horizon Resort"
+          placeholder="เช่น Chonburi Sea View Resort"
           required
         />
 
-        <div class="grid grid-cols-2 gap-3">
-          <BaseInput label="ชื่อจริง (ไม่บังคับ)" v-model="newFirstName" placeholder="สมชาย" />
-          <BaseInput label="นามสกุล (ไม่บังคับ)" v-model="newLastName" placeholder="รักไทย" />
-        </div>
+        <!-- ชื่อเล่น -->
+        <BaseInput
+          label="ชื่อเล่น"
+          v-model="newNickname"
+          placeholder="เช่น Chai, Suda"
+          required
+        />
 
-        <BaseInput label="รหัสผ่านเริ่มต้น" type="password" v-model="newPassword" placeholder="Adoga1234" required />
+        <!-- วันที่สร้าง ( สร้างอัตโนมัติ แก้ไม่ได้ ) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            วันที่สร้าง <span class="text-slate-400 font-normal">(สร้างอัตโนมัติ แก้ไม่ได้)</span>
+          </label>
+          <div class="flex items-center gap-2 px-3.5 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm font-medium cursor-not-allowed select-none">
+            <Calendar class="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <span>{{ todayFormatted }}</span>
+            <Lock class="w-3.5 h-3.5 text-slate-400 ml-auto flex-shrink-0" />
+          </div>
+        </div>
 
         <div class="flex justify-end gap-3 mt-4">
           <BaseButton type="button" variant="outline" @click="showAddModal = false">ยกเลิก</BaseButton>
-          <BaseButton type="submit" variant="secondary" :loading="modalLoading">สร้างบัญชีและเปิดสิทธิ์</BaseButton>
+          <BaseButton type="submit" variant="secondary" :loading="modalLoading">สร้างบัญชี & เพิ่มข้อมูล</BaseButton>
         </div>
       </form>
     </BaseModal>
