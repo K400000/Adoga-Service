@@ -14,7 +14,8 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import {
   User, Lock, Mail, Shield, CheckCircle2,
-  Calendar, LogOut, Edit3, Clock
+  Calendar, LogOut, Edit3, Clock,
+  FileText, Printer, Download, RotateCcw, X, BedDouble, Building, CreditCard
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -103,6 +104,33 @@ function getRoleLabel(role) {
   if (role === 'admin') return 'ผู้ดูแลระบบ (Admin)'
   if (role === 'manager') return 'ผู้ประกอบการโรงแรม (Manager)'
   return 'ผู้ใช้งานทั่วไป (User)'
+}
+
+function getRoomType(hotelId, roomId) {
+  const hotel = (db['adoga_hotels'] || []).find(h => h.id === hotelId)
+  if (!hotel) return 'ห้องพักมาตรฐาน'
+  const room = hotel.rooms?.find(r => r.id === roomId)
+  return room?.type || room?.name || 'Standard Room'
+}
+
+// A4 Document modal state
+const showDocModal = ref(false)
+const activeDocBooking = ref(null)
+const activeDocType = ref('receipt') // 'receipt' | 'refund'
+
+function openDocumentModal(booking, docType = 'receipt') {
+  activeDocBooking.value = booking
+  activeDocType.value = docType
+  showDocModal.value = true
+}
+
+function closeDocumentModal() {
+  showDocModal.value = false
+  activeDocBooking.value = null
+}
+
+function printDocument() {
+  window.print()
 }
 </script>
 
@@ -297,10 +325,22 @@ function getRoleLabel(role) {
                     <StatusBadge entity="booking" :value="derivedBookingStatus(b)" />
                     <StatusBadge entity="payment" :value="b.paymentStatus" size="sm" />
                   </div>
+
+                  <!-- Room Type Badge -->
+                  <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold my-1">
+                    <BedDouble class="w-3.5 h-3.5" />
+                    <span>ประเภทห้อง: {{ getRoomType(b.hotelId, b.roomId) }} (หมายเลขห้อง {{ b.roomNo }})</span>
+                  </div>
+
                   <p class="text-base font-semibold text-slate-600">
-                    📅 {{ formatDate(b.checkIn) }} → {{ formatDate(b.checkOut) }} · {{ b.nights }} คืน · {{ b.guests }} ท่าน
+                    📅 วันเข้าพัก: {{ formatDate(b.checkIn) }} → {{ formatDate(b.checkOut) }} · {{ b.nights }} คืน · {{ b.guests }} ท่าน
                   </p>
-                  <p class="font-display font-bold text-2xl text-indigo-600 tabular-nums">
+
+                  <p class="text-sm font-semibold text-slate-500">
+                    💳 วันที่ชำระเงิน: {{ formatDate(b.createdAt) }}
+                  </p>
+
+                  <p class="font-display font-bold text-2xl text-indigo-600 tabular-nums pt-1">
                     {{ formatPrice(b.totalPrice) }}
                   </p>
 
@@ -310,7 +350,33 @@ function getRoleLabel(role) {
                   </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
+                <!-- Actions & Document Buttons -->
+                <div class="flex flex-wrap gap-2 items-center">
+                  
+                  <!-- Button 1: ใบเสร็จรับเงิน A4 (Receipt) -->
+                  <button
+                    v-if="b.paymentStatus === 'success' || b.paymentStatus === 'refunded' || b.status === 'confirmed' || b.status === 'completed'"
+                    @click="openDocumentModal(b, 'receipt')"
+                    type="button"
+                    class="h-10 px-4 rounded-full border-2 border-indigo-200 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    title="ดูใบเสร็จรับเงิน รูปแบบ A4"
+                  >
+                    <FileText class="w-4 h-4" />
+                    <span>ใบเสร็จรับเงิน (A4)</span>
+                  </button>
+
+                  <!-- Button 2: ใบคืนเงิน A4 (Refund Paper) -->
+                  <button
+                    v-if="refundForBooking(b.id) || b.paymentStatus === 'refunded' || b.status === 'cancelled'"
+                    @click="openDocumentModal(b, 'refund')"
+                    type="button"
+                    class="h-10 px-4 rounded-full border-2 border-amber-300 hover:border-amber-500 bg-amber-50 hover:bg-amber-500 text-amber-900 hover:text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    title="ดูใบแจ้งคืนเงิน รูปแบบ A4"
+                  >
+                    <RotateCcw class="w-4 h-4" />
+                    <span>ใบคืนเงิน (A4)</span>
+                  </button>
+
                   <BaseButton
                     v-if="b.status === 'pending_payment'"
                     @click="doCancelBooking(b.id)"
@@ -351,6 +417,248 @@ function getRoleLabel(role) {
       </div>
     </BaseModal>
 
+    <!-- A4 PDF Document Modal (Receipt & Refund Paper) -->
+    <div id="a4-doc-modal-root" v-if="showDocModal && activeDocBooking" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">
+      <div class="bg-slate-100 rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 my-auto">
+        
+        <!-- Top Action Bar (No-Print) -->
+        <div class="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4 no-print flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div
+              :class="[
+                'p-2.5 rounded-2xl font-bold flex items-center justify-center',
+                activeDocType === 'receipt' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'
+              ]"
+            >
+              <FileText v-if="activeDocType === 'receipt'" class="w-6 h-6" />
+              <RotateCcw v-else class="w-6 h-6" />
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+                <span>{{ activeDocType === 'receipt' ? 'ใบเสร็จรับเงิน (Receipt A4)' : 'ใบแจ้งคืนเงิน (Refund Note A4)' }}</span>
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">
+                เลขที่เอกสาร: {{ activeDocType === 'receipt' ? `REC-${activeDocBooking.id}` : `REF-${refundForBooking(activeDocBooking.id)?.id || activeDocBooking.id}` }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              @click="printDocument"
+              type="button"
+              class="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+            >
+              <Printer class="w-4 h-4" />
+              <span>พิมพ์ / บันทึก PDF</span>
+            </button>
+
+            <button
+              @click="closeDocumentModal"
+              type="button"
+              class="h-11 w-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Document View Container -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-200/70 flex justify-center">
+          
+          <!-- A4 Sheet Container -->
+          <div
+            id="a4-document-printable"
+            class="bg-white w-full max-w-[794px] min-h-[1020px] p-8 sm:p-12 border border-slate-300 shadow-xl rounded-sm flex flex-col justify-between font-sans text-slate-800 relative bg-white"
+          >
+            <!-- Top Banner Header -->
+            <div>
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-slate-800 pb-6 mb-6 gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-2xl font-black tracking-tight text-slate-900 font-display">adoga</span>
+                    <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Service</span>
+                  </div>
+                  <p class="font-bold text-slate-800 text-sm">บริษัท อาโดก้า เซอร์วิส จำกัด (มหาชน)</p>
+                  <p class="text-xs text-slate-500">123 อาคารอาโดก้า ทาวเวอร์ ชั้น 18 ถนนสุขุมวิท เขตวัฒนา กรุงเทพฯ 10110</p>
+                  <p class="text-xs text-slate-500">เลขประจำตัวผู้เสียภาษี: 0105566099881 · โทร: 02-123-4567</p>
+                </div>
+
+                <div class="sm:text-right">
+                  <span
+                    :class="[
+                      'inline-block px-4 py-1.5 rounded-xl font-bold text-sm mb-2 border',
+                      activeDocType === 'receipt'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : 'bg-amber-50 text-amber-800 border-amber-300'
+                    ]"
+                  >
+                    {{ activeDocType === 'receipt' ? '📄 ใบเสร็จรับเงิน (RECEIPT)' : '🧾 ใบแจ้งคืนเงิน (REFUND NOTE)' }}
+                  </span>
+                  <p class="text-xs font-mono text-slate-500">
+                    เลขที่: <strong class="text-slate-900">{{ activeDocType === 'receipt' ? `REC-${activeDocBooking.id}` : `REF-${refundForBooking(activeDocBooking.id)?.id || activeDocBooking.id}` }}</strong>
+                  </p>
+                  <p class="text-xs font-medium text-slate-500">
+                    วันที่ออกเอกสาร: <strong class="text-slate-900">{{ formatDate(activeDocType === 'receipt' ? activeDocBooking.createdAt : (refundForBooking(activeDocBooking.id)?.createdAt || activeDocBooking.createdAt)) }}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Watermark Stamp Seal -->
+              <div class="absolute top-28 right-10 opacity-15 pointer-events-none select-none rotate-[-12deg]">
+                <div
+                  :class="[
+                    'border-4 rounded-3xl p-4 text-center font-black tracking-widest uppercase text-3xl',
+                    activeDocType === 'receipt' ? 'border-emerald-600 text-emerald-600' : 'border-rose-600 text-rose-600'
+                  ]"
+                >
+                  <div>{{ activeDocType === 'receipt' ? 'PAID & VERIFIED' : 'REFUND PROCESSED' }}</div>
+                  <div class="text-sm font-bold tracking-normal mt-1">ADOGA SERVICE OFFICIAL</div>
+                </div>
+              </div>
+
+              <!-- Customer & Details Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 rounded-2xl p-5 border border-slate-200 mb-6 text-sm">
+                <div>
+                  <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-200 pb-1">
+                    👤 ข้อมูลลูกค้า / Customer Info
+                  </h4>
+                  <p class="font-bold text-slate-900 text-base mb-0.5">
+                    {{ user?.firstName }} {{ user?.lastName }}
+                    <span v-if="user?.nickname" class="text-slate-500 text-xs font-normal">({{ user?.nickname }})</span>
+                  </p>
+                  <p class="text-slate-600 text-xs">อีเมล: {{ user?.email }}</p>
+                  <p class="text-slate-600 text-xs">รหัสผู้ใช้งาน: {{ user?.id }}</p>
+                </div>
+
+                <div>
+                  <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-200 pb-1">
+                    💳 ข้อมูลการชำระเงิน / Payment Info
+                  </h4>
+                  <p class="text-slate-700 text-xs font-semibold">
+                    ชำระวันไหน: <strong class="text-slate-900 font-bold">{{ formatDate(activeDocBooking.createdAt) }}</strong>
+                  </p>
+                  <p class="text-slate-700 text-xs font-semibold">
+                    ช่องทางชำระ: <strong class="text-slate-900">{{ activeDocBooking.paymentMethod === 'QR' ? 'สแกน QR Code (PromptPay)' : 'โอนเงินผ่านธนาคาร' }}</strong>
+                  </p>
+                  <p class="text-slate-700 text-xs font-semibold">
+                    หมายเลขการจอง: <strong class="text-slate-900">#{{ activeDocBooking.id }}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Main Breakdown Table -->
+              <div class="border border-slate-300 rounded-2xl overflow-hidden mb-6">
+                <table class="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr class="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
+                      <th class="py-3 px-4 w-10 text-center">#</th>
+                      <th class="py-3 px-4">ชื่อโรงแรม (Hotel)</th>
+                      <th class="py-3 px-4">ประเภทห้อง (Room)</th>
+                      <th class="py-3 px-4">ชำระวันไหน (Paid Date)</th>
+                      <th class="py-3 px-4 text-right">ราคา (Price)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200 bg-white">
+                    <tr>
+                      <td class="py-4 px-4 text-center font-bold text-slate-400">1</td>
+                      <td class="py-4 px-4">
+                        <p class="font-bold text-slate-900 text-base mb-0.5">{{ getHotelName(activeDocBooking.hotelId) }}</p>
+                        <p class="text-xs text-slate-500">
+                          📅 {{ formatDate(activeDocBooking.checkIn) }} — {{ formatDate(activeDocBooking.checkOut) }} ({{ activeDocBooking.nights }} คืน, {{ activeDocBooking.guests }} ท่าน)
+                        </p>
+                      </td>
+                      <td class="py-4 px-4 font-semibold text-slate-800">
+                        <div class="text-slate-900 font-bold">{{ getRoomType(activeDocBooking.hotelId, activeDocBooking.roomId) }}</div>
+                        <span class="text-xs text-slate-500 font-normal">หมายเลขห้อง {{ activeDocBooking.roomNo }}</span>
+                      </td>
+                      <td class="py-4 px-4 font-bold text-indigo-700 text-xs">
+                        {{ formatDate(activeDocBooking.createdAt) }}
+                      </td>
+                      <td class="py-4 px-4 text-right font-bold text-slate-900 text-base tabular-nums">
+                        {{ formatPrice(activeDocBooking.totalPrice) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Financial Totals -->
+              <div class="flex justify-end mb-6">
+                <div class="w-full sm:w-72 bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-sm">
+                  <div class="flex justify-between text-slate-600 text-xs">
+                    <span>ราคาก่อนภาษี (Subtotal):</span>
+                    <span>{{ formatPrice(Math.round(activeDocBooking.totalPrice * 100 / 107)) }}</span>
+                  </div>
+                  <div class="flex justify-between text-slate-600 text-xs pb-2 border-b border-slate-200">
+                    <span>ภาษีมูลค่าเพิ่ม VAT (7%):</span>
+                    <span>{{ formatPrice(activeDocBooking.totalPrice - Math.round(activeDocBooking.totalPrice * 100 / 107)) }}</span>
+                  </div>
+                  <div class="flex justify-between font-bold text-slate-900 text-lg pt-1">
+                    <span>{{ activeDocType === 'receipt' ? 'ยอดชำระสุทธิ:' : 'ยอดเงินคืนสุทธิ:' }}</span>
+                    <span class="text-indigo-700">{{ formatPrice(activeDocBooking.totalPrice) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Refund Note Specific Section -->
+              <div v-if="activeDocType === 'refund'" class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 text-xs text-amber-900 space-y-1.5">
+                <h5 class="font-bold text-amber-950 text-sm flex items-center gap-1.5">
+                  <RotateCcw class="w-4 h-4 text-amber-600" />
+                  <span>รายละเอียดการคืนเงิน (Refund Details)</span>
+                </h5>
+                <p><strong>เหตุผลการคืนเงิน:</strong> {{ refundForBooking(activeDocBooking.id)?.reason || 'เปลี่ยนแผนการเดินทาง' }}</p>
+                <p>
+                  <strong>สถานะการคืนเงิน:</strong> 
+                  <span class="font-bold underline">
+                    {{
+                      refundForBooking(activeDocBooking.id)?.status === 'approved'
+                        ? 'อนุมัติคำขอและโอนเงินคืนเรียบร้อยแล้ว'
+                        : refundForBooking(activeDocBooking.id)?.status === 'rejected'
+                        ? 'ปฏิเสธคำขอคืนเงิน (' + (refundForBooking(activeDocBooking.id)?.rejectReason || 'ไม่เข้าเงื่อนไข') + ')'
+                        : 'อยู่ระหว่างการตรวจสอบและดำเนินการคืนเงิน'
+                    }}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Footer Signatures & Official Stamp -->
+            <div class="pt-8 border-t border-slate-200 mt-auto">
+              <div class="grid grid-cols-2 gap-8 mb-6 text-center text-xs">
+                <div class="space-y-12">
+                  <p class="font-bold text-slate-600">ลงชื่อผู้ชำระเงิน / Customer</p>
+                  <div class="border-b border-dashed border-slate-400 w-40 mx-auto"></div>
+                  <p class="text-slate-500">({{ user?.firstName }} {{ user?.lastName }})</p>
+                </div>
+
+                <div class="space-y-12 relative">
+                  <p class="font-bold text-slate-600">ลงชื่อผู้รับเงิน / Authorized Signature</p>
+                  
+                  <!-- Circular Stamp Graphic -->
+                  <div class="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-20 border-2 border-indigo-500 rounded-full flex items-center justify-center text-indigo-600 opacity-80 pointer-events-none rotate-[-15deg]">
+                    <div class="text-[9px] font-black text-center leading-tight">
+                      <div>ADOGA SERVICE</div>
+                      <div class="text-[7px]">OFFICIAL SEAL</div>
+                    </div>
+                  </div>
+
+                  <div class="border-b border-dashed border-slate-400 w-40 mx-auto"></div>
+                  <p class="text-slate-500">(เจ้าหน้าที่อนุมัติ Adoga Service)</p>
+                </div>
+              </div>
+
+              <div class="text-center text-[10px] text-slate-400 font-medium">
+                เอกสารฉบับนี้ถูกออกด้วยระบบอิเล็กทรอนิกส์ของ Adoga Service และมีผลสมบูรณ์ตามกฎหมาย · ขอบคุณที่ใช้บริการ
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Footer Pinned to Bottom -->
     <Footer />
   </div>
@@ -359,4 +667,46 @@ function getRoleLabel(role) {
 <style scoped>
 .fade-enter-active, .fade-leave-active { transition: opacity 300ms ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
+
+<style>
+@media print {
+  /* Hide all elements on the entire page */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Reveal ONLY the A4 printable document sheet and all its child elements */
+  #a4-document-printable,
+  #a4-document-printable * {
+    visibility: visible !important;
+  }
+
+  /* Position the printable sheet at the top-left corner of page 1 */
+  #a4-document-printable {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* Hide modal buttons and top control action bar */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Page setup for A4 */
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
 </style>
