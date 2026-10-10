@@ -14,7 +14,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import {
   User, Lock, Mail, Shield, CheckCircle2,
-  Calendar, LogOut, Edit3, Clock,
+  Calendar, LogOut, Edit3, Clock, Phone, Cake, Send,
   FileText, Printer, Download, RotateCcw, X, BedDouble, Building, CreditCard
 } from '@lucide/vue'
 
@@ -39,15 +39,21 @@ function getHotelName(hotelId) {
   return (db['adoga_hotels'] || []).find(h => h.id === hotelId)?.name || hotelId
 }
 
-function saveEmail() {
-  if (!emailInput.value.trim()) return
-  const users = [...(db['adoga_users'] || [])]
-  const idx = users.findIndex(u => u.id === session.value?.userId)
-  if (idx !== -1) {
-    users[idx] = { ...users[idx], email: emailInput.value.trim() }
-    db['adoga_users'] = users
-    showEmailSuccessAlert.value = true
+function requestChangeEmail() {
+  showEmailSuccessAlert.value = true
+}
+
+function calculateAge(birthdateStr) {
+  if (!birthdateStr) return '-'
+  const birth = new Date(birthdateStr)
+  if (isNaN(birth.getTime())) return '-'
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--
   }
+  return age > 0 ? `${age} ปี` : '-'
 }
 
 function doLogout() {
@@ -203,17 +209,17 @@ function printDocument() {
         <!-- TAB 1: INFO (Personal Details) -->
         <div v-if="activeTab === 'info'" class="space-y-6">
           
-          <!-- Success Email Update Alert Banner -->
+          <!-- Email Confirmation Sent Alert Banner -->
           <Transition name="fade">
-            <div v-if="showEmailSuccessAlert" class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-5 text-emerald-900 flex items-start gap-4 shadow-sm">
-              <CheckCircle2 class="w-7 h-7 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div v-if="showEmailSuccessAlert" class="bg-indigo-50 border-2 border-indigo-300 rounded-2xl p-5 text-indigo-950 flex items-start gap-4 shadow-sm">
+              <Send class="w-7 h-7 text-indigo-600 flex-shrink-0 mt-0.5" />
               <div class="flex-1">
-                <h4 class="font-bold text-lg text-emerald-950 mb-1">บันทึกการเปลี่ยนแปลงอีเมลสำเร็จ!</h4>
-                <p class="text-sm sm:text-base font-medium text-emerald-800">
-                  ระบบได้ทำการอัปเดตอีเมลใหม่ของคุณเรียบร้อยแล้ว <strong class="underline decoration-emerald-500">(สามารถแก้ไขอีเมลได้อีกครั้งในอีก 3 เดือนข้างหน้า)</strong>
+                <h4 class="font-bold text-lg text-indigo-950 mb-1">ส่งลิงก์ยืนยันเรียบร้อยแล้ว!</h4>
+                <p class="text-sm sm:text-base font-medium text-indigo-800">
+                  ส่งเข้าไปที่อีเมลเรียบร้อย อย่าลืมไปกดรับเพื่อยืนยันการเปลี่ยนแปลงอีเมล
                 </p>
               </div>
-              <button @click="showEmailSuccessAlert = false" class="text-emerald-700 hover:text-emerald-950 font-bold text-sm cursor-pointer">✕</button>
+              <button @click="showEmailSuccessAlert = false" class="text-indigo-700 hover:text-indigo-950 font-bold text-sm cursor-pointer">✕</button>
             </div>
           </Transition>
 
@@ -247,50 +253,84 @@ function printDocument() {
                   </span>
                 </label>
                 <div class="w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-700 font-bold text-lg select-none">
-                  {{ user?.nickname }}
+                  {{ user?.nickname || '-' }}
                 </div>
               </div>
 
-              <!-- 3. อีเมล [แก้ได้] -->
+              <!-- 3. อีเมล [แก้ไม่ได้ - ปุ่มส่งลิงก์ยืนยัน] -->
               <div class="space-y-2 md:col-span-2">
                 <label class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
                   <span class="flex items-center gap-2">
                     <Mail class="w-4 h-4 text-indigo-600" />
-                    3. อีเมล
+                    3. อีเมล (ไม่สามารถพิมพ์แก้ไขโดยตรงได้)
                   </span>
                 </label>
                 
                 <div class="flex flex-col sm:flex-row gap-3">
-                  <div class="flex-1 relative">
-                    <input
-                      v-model="emailInput"
-                      type="email"
-                      placeholder="ระบุอีเมลของคุณ..."
-                      class="w-full h-14 px-5 bg-white border-2 border-slate-300 focus:border-indigo-600 rounded-2xl text-slate-900 font-bold text-lg outline-none transition-colors shadow-xs"
-                    />
+                  <div class="flex-1 w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-700 font-bold text-lg select-none cursor-not-allowed">
+                    {{ user?.email }}
                   </div>
                   <button
-                    @click="saveEmail"
+                    @click="requestChangeEmail"
                     type="button"
-                    class="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-lg transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer flex-shrink-0"
+                    class="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-base transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer flex-shrink-0"
                   >
-                    <CheckCircle2 class="w-5 h-5" />
-                    <span>บันทึกอีเมล</span>
+                    <Send class="w-5 h-5" />
+                    <span>ขอเปลี่ยนอีเมล</span>
                   </button>
                 </div>
                 
                 <p class="text-xs font-medium text-slate-400 flex items-center gap-1 pt-1">
                   <Clock class="w-3.5 h-3.5 text-amber-500" />
-                  <span>หมายเหตุ: หลังจากกดบันทึกแล้ว คุณจะสามารถเปลี่ยนอีเมลได้อีกครั้งในอีก 3 เดือนข้างหน้า</span>
+                  <span>หมายเหตุ: การเปลี่ยนอีเมลต้องผ่านการยืนยันตัวตนจากลิงก์ส่งตรงเข้าอีเมลเดิมของคุณ</span>
                 </p>
               </div>
 
-              <!-- 4. บทบาท [แก้ไม่ได้] -->
-              <div class="space-y-2 md:col-span-2">
+              <!-- 4. เบอร์โทรศัพท์ [แก้ไม่ได้] -->
+              <div class="space-y-2">
+                <label class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
+                  <span class="flex items-center gap-2">
+                    <Phone class="w-4 h-4 text-indigo-600" />
+                    4. เบอร์โทรศัพท์
+                  </span>
+                </label>
+                <div class="w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-700 font-bold text-lg select-none">
+                  {{ user?.phone || '081-234-5678' }}
+                </div>
+              </div>
+
+              <!-- 5. วันเกิด [แก้ไม่ได้] -->
+              <div class="space-y-2">
+                <label class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
+                  <span class="flex items-center gap-2">
+                    <Calendar class="w-4 h-4 text-indigo-600" />
+                    5. วันเกิด
+                  </span>
+                </label>
+                <div class="w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-700 font-bold text-lg select-none">
+                  {{ user?.birthdate ? formatDate(user.birthdate) : '15 พ.ค. 2539' }}
+                </div>
+              </div>
+
+              <!-- 6. อายุ (คำนวณอัตโนมัติ) [แก้ไม่ได้] -->
+              <div class="space-y-2">
+                <label class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
+                  <span class="flex items-center gap-2">
+                    <Cake class="w-4 h-4 text-indigo-600" />
+                    6. อายุ (คำนวณจากวันเกิด ปี 2026)
+                  </span>
+                </label>
+                <div class="w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-700 font-bold text-lg select-none">
+                  {{ calculateAge(user?.birthdate || '1996-05-15') }}
+                </div>
+              </div>
+
+              <!-- 7. บทบาท [แก้ไม่ได้] -->
+              <div class="space-y-2">
                 <label class="text-sm font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
                   <span class="flex items-center gap-2">
                     <Shield class="w-4 h-4 text-indigo-600" />
-                    4. บทบาทผู้ใช้งาน
+                    7. บทบาทผู้ใช้งาน
                   </span>
                 </label>
                 <div class="w-full h-14 px-5 bg-slate-100/80 border-2 border-slate-200 rounded-2xl flex items-center text-slate-800 font-bold text-lg select-none">

@@ -40,6 +40,8 @@ const regConfirm = ref('')
 const regFirstName = ref('')
 const regLastName = ref('')
 const regNickname = ref('')
+const regPhone = ref('')
+const regBirthdate = ref('')
 const showRegPwd = ref(false)
 const regErrors = ref({})
 
@@ -98,6 +100,8 @@ function validateStep1() {
   if (!fnR.valid) errors.firstName = fnR.message
   const lnR = validateName(regLastName.value, 'นามสกุล')
   if (!lnR.valid) errors.lastName = lnR.message
+  if (!regPhone.value || !regPhone.value.trim()) errors.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+  if (!regBirthdate.value) errors.birthdate = 'กรุณาระบุวันเกิด'
   regErrors.value = errors
   return Object.keys(errors).length === 0
 }
@@ -120,6 +124,8 @@ async function doRegister() {
     firstName: regFirstName.value,
     lastName: regLastName.value,
     nickname: regNickname.value,
+    phone: regPhone.value,
+    birthdate: regBirthdate.value,
     role: regRole.value,
   })
   loading.value = false
@@ -138,6 +144,8 @@ async function doRegister() {
 function mockGoogle() {
   const rand = Math.floor(Math.random() * 900) + 100
   regEmail.value = `demo.user${rand}@gmail.com`
+  regPhone.value = `08${Math.floor(10000000 + Math.random() * 90000000)}`
+  regBirthdate.value = '2000-01-01'
   tab.value = 'register'
   step.value = 1
 }
@@ -297,6 +305,10 @@ const ROLES = [
               <BaseInput label="นามสกุล" v-model="regLastName" placeholder="นามสกุล" required :error="regErrors.lastName" class="flex-1" />
             </div>
             <BaseInput label="ชื่อเล่น (ไม่บังคับ)" v-model="regNickname" placeholder="ชื่อเล่น" />
+            <div class="flex gap-2">
+              <BaseInput label="เบอร์โทรศัพท์" type="tel" v-model="regPhone" placeholder="08X-XXX-XXXX" required :error="regErrors.phone" class="flex-1" />
+              <BaseInput label="วันเกิด" type="date" v-model="regBirthdate" required :error="regErrors.birthdate" class="flex-1" />
+            </div>
             <BaseInput label="อีเมล" type="email" v-model="regEmail" placeholder="example@email.com" required :error="regErrors.email" />
             <BaseInput label="รหัสผ่าน" :type="showRegPwd ? 'text' : 'password'" v-model="regPassword" placeholder="••••••••" required :error="regErrors.password">
               <template #suffix>

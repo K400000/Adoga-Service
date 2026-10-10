@@ -4,7 +4,7 @@ import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 import { db } from '../stores/db.js'
 
-const VERSION = 5
+const VERSION = 6
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -18,11 +18,11 @@ export function runSeed(force = false) {
 
   // ── Users ────────────────────────────────────────────────
   const users = [
-    { id: 'U001', email: 'user@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'John',    lastName: 'Doe',     nickname: 'Johnny', provider: 'local', createdAt: isoD(-30) },
-    { id: 'U002', email: 'mary@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'Mary',    lastName: 'Smith',   nickname: 'Mary',   provider: 'local', createdAt: isoD(-25) },
-    { id: 'M001', email: 'hotel@domain.com',  password: 'Adoga1234', role: 'manager', firstName: 'Somchai', lastName: 'Rakthai', nickname: 'Chai',   provider: 'local', createdAt: isoD(-60) },
-    { id: 'M002', email: 'hotel2@domain.com', password: 'Adoga1234', role: 'manager', firstName: 'Suda',    lastName: 'Meesuk',  nickname: 'Suda',   provider: 'local', createdAt: isoD(-55) },
-    { id: 'A001', email: 'admin@adoga.com',   password: 'Adoga1234', role: 'admin',   firstName: 'Admin',   lastName: 'Adoga',   nickname: 'Admin',  provider: 'local', createdAt: isoD(-90) },
+    { id: 'U001', email: 'user@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'John',    lastName: 'Doe',     nickname: 'Johnny', phone: '081-234-5678', birthdate: '1996-05-15', provider: 'local', createdAt: isoD(-30) },
+    { id: 'U002', email: 'mary@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'Mary',    lastName: 'Smith',   nickname: 'Mary',   phone: '089-876-5432', birthdate: '1998-11-20', provider: 'local', createdAt: isoD(-25) },
+    { id: 'M001', email: 'hotel@domain.com',  password: 'Adoga1234', role: 'manager', firstName: 'Somchai', lastName: 'Rakthai', nickname: 'Chai',   phone: '082-111-2233', birthdate: '1988-03-10', provider: 'local', createdAt: isoD(-60) },
+    { id: 'M002', email: 'hotel2@domain.com', password: 'Adoga1234', role: 'manager', firstName: 'Suda',    lastName: 'Meesuk',  nickname: 'Suda',   phone: '083-444-5566', birthdate: '1990-07-25', provider: 'local', createdAt: isoD(-55) },
+    { id: 'A001', email: 'admin@adoga.com',   password: 'Adoga1234', role: 'admin',   firstName: 'Admin',   lastName: 'Adoga',   nickname: 'Admin',  phone: '080-000-0000', birthdate: '1992-01-01', provider: 'local', createdAt: isoD(-90) },
   ]
 
   // ── Hotels ───────────────────────────────────────────────

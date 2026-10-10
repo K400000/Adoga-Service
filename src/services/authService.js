@@ -10,7 +10,7 @@ function nextId(role) {
   return prefix + String(Math.max(0, ...nums) + 1).padStart(3, '0')
 }
 
-export function register({ email, password, firstName, lastName, nickname, role, provider = 'local' }) {
+export function register({ email, password, firstName, lastName, nickname, phone, birthdate, role, provider = 'local' }) {
   const users = db['adoga_users'] || []
   const emailVal = validateEmailUnique(email, users)
   if (!emailVal.valid) return { ok: false, message: emailVal.message }
@@ -30,6 +30,8 @@ export function register({ email, password, firstName, lastName, nickname, role,
     firstName: firstName.trim(),
     lastName: lastName.trim(),
     nickname: nickname?.trim() || firstName.trim(),
+    phone: phone?.trim() || '',
+    birthdate: birthdate || '',
     provider,
     createdAt: new Date().toISOString(),
   }
