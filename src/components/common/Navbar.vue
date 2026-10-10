@@ -52,11 +52,8 @@ const navLinks = computed(() => {
       <!-- Left side: Logo + Navigation Links -->
       <div class="flex items-center gap-6 lg:gap-10">
         <!-- Logo -->
-        <RouterLink to="/home" class="flex items-center gap-2.5 font-display font-bold text-2xl md:text-3xl text-indigo-600 no-underline hover:opacity-90 transition-opacity">
-          <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-            <Hotel class="w-6 h-6 text-white" :stroke-width="2.2" />
-          </div>
-          <span class="tracking-tight text-slate-900">Adoga</span>
+        <RouterLink to="/home" class="flex items-center no-underline hover:opacity-90 transition-opacity">
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-10 sm:h-12 w-auto object-contain" />
         </RouterLink>
 
         <!-- Desktop Navigation Links (Left Aligned Next to Logo) -->

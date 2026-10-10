@@ -175,11 +175,9 @@ const ROLES = [
       <div class="bg-white/95 backdrop-blur-md rounded-3xl border border-white/60 p-6 sm:p-8 shadow-2xl">
         <!-- Logo & Header -->
         <div class="flex flex-col items-center text-center mb-6">
-          <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center mb-3 shadow-md">
-            <Hotel class="w-7 h-7 text-white" :stroke-width="2" />
-          </div>
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-12 w-auto object-contain mb-3" />
           <h1 class="font-display font-semibold text-2xl text-ink">
-            {{ tab === 'login' ? 'เข้าสู่ระบบหรือสร้างบัญชีผู้ใช้' : 'สมัครสมาชิก Adoga' }}
+            {{ tab === 'login' ? 'เข้าสู่ระบบหรือสร้างบัญชีผู้ใช้' : 'สมัครสมาชิก' }}
           </h1>
           <p class="text-xs sm:text-sm text-ink-muted mt-1">
             สมัครใช้บริการฟรีหรือล็อกอินเข้าสู่ระบบเพื่อรับข้อเสนอและสิทธิประโยชน์สุดพิเศษ

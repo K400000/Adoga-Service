@@ -55,15 +55,11 @@ function doLogout() {
       <!-- Top Section: Logo & Nav Links -->
       <div class="flex flex-col gap-6">
         <!-- Logo -->
-        <div class="flex items-center gap-3 px-2">
-          <div :class="['w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm', effectiveType === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
-            <ShieldCheck v-if="effectiveType === 'admin'" class="w-5 h-5" :stroke-width="2" />
-            <Hotel v-else class="w-5 h-5" :stroke-width="2" />
-          </div>
-          <div>
-            <p class="font-display font-semibold text-sm text-ink">{{ title }}</p>
-            <p class="text-xs text-ink-muted">{{ subtitle }}</p>
-          </div>
+        <div class="flex flex-col gap-1 px-1">
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-10 w-auto object-contain self-start" />
+          <span :class="['text-[11px] font-extrabold uppercase tracking-wider px-1 py-0.5 rounded-md self-start border', effectiveType === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200']">
+            {{ effectiveType === 'admin' ? 'System Console' : 'Partner Portal' }}
+          </span>
         </div>
 
         <!-- Nav Links -->
@@ -109,11 +105,10 @@ function doLogout() {
     <!-- Mobile Top Navigation Bar (< lg) -->
     <header class="lg:hidden sticky top-0 z-40 bg-white border-b border-line px-4 py-3 flex items-center justify-between shadow-xs">
       <div class="flex items-center gap-2">
-        <div :class="['w-8 h-8 rounded-lg flex items-center justify-center text-white', effectiveType === 'admin' ? 'bg-purple-600' : 'bg-indigo-600']">
-          <ShieldCheck v-if="effectiveType === 'admin'" class="w-4 h-4" :stroke-width="2" />
-          <Hotel v-else class="w-4 h-4" :stroke-width="2" />
-        </div>
-        <span class="font-display font-semibold text-sm text-ink">{{ title }}</span>
+        <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-7 w-auto object-contain" />
+        <span :class="['text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border', effectiveType === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200']">
+          {{ effectiveType === 'admin' ? 'Admin' : 'Manager' }}
+        </span>
       </div>
 
       <!-- Mobile Navigation Links & Logout -->

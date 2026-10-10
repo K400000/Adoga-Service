@@ -69,9 +69,7 @@ async function doReset() {
     <div class="relative z-10 w-full max-w-[460px] my-auto">
       <div class="bg-white/95 backdrop-blur-md rounded-3xl border border-white/60 p-6 sm:p-8 shadow-2xl">
         <div class="flex flex-col items-center text-center mb-6">
-          <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center mb-3 shadow-md">
-            <Hotel class="w-7 h-7 text-white" :stroke-width="2" />
-          </div>
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-12 w-auto object-contain mb-3" />
           <h1 class="font-display font-semibold text-2xl text-ink">ลืมรหัสผ่านใช่หรือไม่?</h1>
           <p class="text-xs sm:text-sm text-ink-muted mt-1">
             ระบุอีเมลที่คุณใช้ลงทะเบียนเพื่อรับรหัสยืนยัน PIN 6 หลักสำหรับตั้งรหัสผ่านใหม่

@@ -10,11 +10,8 @@ import { Hotel } from '@lucide/vue'
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
         <!-- Brand -->
         <div>
-          <div class="flex items-center gap-2 mb-3">
-            <div class="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center">
-              <Hotel class="w-5 h-5 text-white" :stroke-width="2" />
-            </div>
-            <span class="font-display font-semibold text-white text-lg">Adoga</span>
+          <div class="bg-white px-3 py-1.5 rounded-xl inline-block mb-3">
+            <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-7 w-auto object-contain" />
           </div>
           <p class="text-sm text-slate-400 leading-relaxed">{{ PROJECT_INFO.subject }}</p>
           <p class="text-xs text-slate-500 mt-2">© {{ PROJECT_INFO.year }} {{ PROJECT_INFO.name }}</p>
