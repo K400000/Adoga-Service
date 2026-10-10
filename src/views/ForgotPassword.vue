@@ -1,14 +1,15 @@
 <script setup>
 // src/views/ForgotPassword.vue
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { db } from '../stores/db.js'
 import { resetPassword } from '../services/authService.js'
 import { getPasswordRules } from '../utils/validators.js'
 import { showToast } from '../utils/toast.js'
 import BaseInput from '../components/common/BaseInput.vue'
 import BaseButton from '../components/common/BaseButton.vue'
-import { Hotel, Check, X } from '@lucide/vue'
+import { Hotel, Check, X, ShieldCheck, ArrowLeft } from '@lucide/vue'
+import screenBg from '../../docs/ui-specs/screen.png'
 
 const router = useRouter()
 const step = ref(1) // 1=email, 2=pin, 3=newpwd
@@ -51,46 +52,102 @@ async function doReset() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex items-center justify-center px-4 py-8">
-    <div class="w-full max-w-[440px]">
-      <div class="flex flex-col items-center mb-8">
-        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center mb-3">
-          <Hotel class="w-7 h-7 text-white" :stroke-width="2" />
-        </div>
-        <h1 class="font-display font-semibold text-2xl text-ink">ลืมรหัสผ่าน</h1>
-      </div>
+  <div
+    class="relative min-h-screen flex flex-col justify-between items-center px-4 py-8 sm:py-12 bg-cover bg-center bg-no-repeat"
+    :style="{ backgroundImage: `url(${screenBg})` }"
+  >
+    <!-- Dark blur overlay -->
+    <div class="absolute inset-0 bg-slate-950/30 backdrop-blur-[3px] pointer-events-none"></div>
 
-      <div class="bg-white rounded-3xl border border-line p-8 shadow-e1">
+    <!-- Security top badge -->
+    <div class="relative z-10 mb-4 hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-white/60 text-xs text-slate-700 font-medium">
+      <ShieldCheck class="w-4 h-4 text-indigo-600" />
+      <span>ระบบความปลอดภัยบัญชีผู้ใช้งาน 256-Bit SSL</span>
+    </div>
+
+    <!-- Center Card -->
+    <div class="relative z-10 w-full max-w-[460px] my-auto">
+      <div class="bg-white/95 backdrop-blur-md rounded-3xl border border-white/60 p-6 sm:p-8 shadow-2xl">
+        <div class="flex flex-col items-center text-center mb-6">
+          <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center mb-3 shadow-md">
+            <Hotel class="w-7 h-7 text-white" :stroke-width="2" />
+          </div>
+          <h1 class="font-display font-semibold text-2xl text-ink">ลืมรหัสผ่านใช่หรือไม่?</h1>
+          <p class="text-xs sm:text-sm text-ink-muted mt-1">
+            ระบุอีเมลที่คุณใช้ลงทะเบียนเพื่อรับรหัสยืนยัน PIN 6 หลักสำหรับตั้งรหัสผ่านใหม่
+          </p>
+        </div>
+
+        <!-- Stepper Indicator -->
+        <div class="flex items-center justify-center gap-4 mb-6 bg-slate-100/80 p-2 rounded-full border border-slate-200/50">
+          <div :class="['flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full', step === 1 ? 'bg-indigo-600 text-white' : 'text-slate-500']">
+            <span>1</span>
+            <span>ระบุอีเมล</span>
+          </div>
+          <div :class="['flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full', step === 2 ? 'bg-indigo-600 text-white' : 'text-slate-500']">
+            <span>2</span>
+            <span>ยืนยัน PIN</span>
+          </div>
+          <div :class="['flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full', step === 3 ? 'bg-indigo-600 text-white' : 'text-slate-500']">
+            <span>3</span>
+            <span>รหัสผ่านใหม่</span>
+          </div>
+        </div>
+
         <!-- Step 1: Email -->
         <form v-if="step === 1" @submit.prevent="doSendPin" class="flex flex-col gap-4">
-          <p class="text-sm text-ink-muted">กรอกอีเมลที่ใช้ลงทะเบียน เพื่อรับ PIN ยืนยัน</p>
-          <BaseInput label="อีเมล" type="email" v-model="email" placeholder="example@email.com" :error="emailError" required />
-          <BaseButton type="submit" variant="secondary" size="lg" class="w-full">ส่ง PIN</BaseButton>
-          <router-link to="/auth" class="text-center text-sm text-indigo-600 hover:underline">กลับไปหน้าเข้าสู่ระบบ</router-link>
+          <BaseInput label="อีเมลที่ลงทะเบียน" type="email" v-model="email" placeholder="guest@example.com" :error="emailError" required />
+          <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-100 text-xs text-blue-700">
+            ℹ️ รหัส PIN ยืนยันตัวตนมีอายุการใช้งาน 15 นาที ระบบจะจำลองรหัสแจ้งเตือนผ่าน Toast
+          </div>
+          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ส่งรหัส PIN 6 หลัก →</BaseButton>
+          <RouterLink to="/auth" class="flex items-center justify-center gap-1.5 text-center text-sm text-ink-muted hover:text-ink pt-2">
+            <ArrowLeft class="w-4 h-4" />
+            <span>ย้อนกลับไปหน้าเข้าสู่ระบบ</span>
+          </RouterLink>
         </form>
 
         <!-- Step 2: PIN -->
         <form v-else-if="step === 2" @submit.prevent="doVerifyPin" class="flex flex-col gap-4">
-          <p class="text-sm text-ink-muted">กรอก PIN 6 หลักที่แสดงในการแจ้งเตือน</p>
-          <BaseInput label="PIN 6 หลัก" v-model="pin" placeholder="000000" maxlength="6" :error="pinError" required />
-          <BaseButton type="submit" variant="secondary" size="lg" class="w-full">ยืนยัน PIN</BaseButton>
+          <p class="text-sm text-ink-muted text-center">กรอก PIN 6 หลักที่แสดงในการแจ้งเตือนสำหรับ <b>{{ email }}</b></p>
+          <BaseInput label="PIN 6 หลัก" v-model="pin" placeholder="000000" maxlength="6" :error="pinError" required class="text-center font-mono text-lg tracking-widest" />
+          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ยืนยัน PIN →</BaseButton>
+          <button type="button" @click="step = 1" class="text-center text-xs text-ink-muted hover:text-ink">
+            เปลี่ยนอีเมล
+          </button>
         </form>
 
         <!-- Step 3: New password -->
         <form v-else @submit.prevent="doReset" class="flex flex-col gap-4">
-          <p class="text-sm text-ink-muted">ตั้งรหัสผ่านใหม่</p>
           <BaseInput label="รหัสผ่านใหม่" type="password" v-model="newPwd" placeholder="••••••••" required />
           <div v-if="newPwd" class="grid grid-cols-2 gap-1 px-1">
             <div v-for="rule in pwdRules" :key="rule.label" class="flex items-center gap-1.5 text-xs">
               <Check v-if="rule.pass" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" :stroke-width="2.5" />
               <X v-else class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" :stroke-width="2.5" />
-              <span :class="rule.pass ? 'text-emerald-700' : 'text-slate-400'">{{ rule.label }}</span>
+              <span :class="rule.pass ? 'text-emerald-700 font-medium' : 'text-slate-400'">{{ rule.label }}</span>
             </div>
           </div>
           <BaseInput label="ยืนยันรหัสผ่านใหม่" type="password" v-model="confirmPwd" placeholder="••••••••" required :error="pwdError" />
-          <BaseButton type="submit" variant="secondary" size="lg" class="w-full">ตั้งรหัสผ่านใหม่</BaseButton>
+          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ตั้งรหัสผ่านใหม่</BaseButton>
         </form>
       </div>
     </div>
+
+    <!-- Bottom Footer -->
+    <footer class="relative z-10 text-center text-xs text-white/90 drop-shadow-md mt-6 space-y-1">
+      <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 font-medium">
+        <span>ศูนย์ช่วยเหลือ</span>
+        <span>•</span>
+        <span>ข้อกำหนดการใช้งาน</span>
+        <span>•</span>
+        <span>นโยบายความเป็นส่วนตัว</span>
+        <span>•</span>
+        <span>ติดต่อเรา</span>
+      </div>
+      <p class="text-white/80 text-[11px]">
+        โครงงานรายวิชา System Analysis and Design (SA&D) • Adoga Service
+      </p>
+    </footer>
   </div>
 </template>
+

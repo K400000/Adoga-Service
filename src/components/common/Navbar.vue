@@ -23,13 +23,13 @@ const currentUser = computed(() => {
 
 function doLogout() {
   logout()
-  router.push('/')
+  router.push('/auth')
   menuOpen.value = false
 }
 
 const navLinks = computed(() => {
   if (isUser.value) return [
-    { to: '/', label: 'หน้าแรก', icon: Home },
+    { to: '/home', label: 'หน้าแรก', icon: Home },
     { to: '/messages', label: 'ข้อความ', icon: MessageCircle },
     { to: '/profile', label: 'โปรไฟล์', icon: User },
   ]
@@ -43,7 +43,7 @@ const navLinks = computed(() => {
     { to: '/admin/approval', label: 'อนุมัติ', icon: CheckSquare },
     { to: '/admin/settings', label: 'ตั้งค่า', icon: Settings },
   ]
-  return [{ to: '/', label: 'หน้าแรก', icon: Home }]
+  return [{ to: '/home', label: 'หน้าแรก', icon: Home }]
 })
 </script>
 
@@ -51,7 +51,7 @@ const navLinks = computed(() => {
   <nav class="sticky top-0 z-40 h-16 bg-white/70 backdrop-blur-md border-b border-line shadow-e2 supports-[not(backdrop-filter)]:bg-white/95">
     <div class="mx-auto max-w-[1200px] px-4 md:px-8 h-full flex items-center justify-between">
       <!-- Logo -->
-      <RouterLink to="/" class="flex items-center gap-2 font-display font-semibold text-xl text-ink no-underline">
+      <RouterLink to="/home" class="flex items-center gap-2 font-display font-semibold text-xl text-ink no-underline">
         <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center">
           <Hotel class="w-5 h-5 text-white" :stroke-width="2" />
         </div>

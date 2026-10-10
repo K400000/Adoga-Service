@@ -71,7 +71,7 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
 
     <div v-if="!hotel" class="flex flex-col items-center py-24">
       <p class="text-lg font-medium text-ink">ไม่พบที่พักนี้</p>
-      <router-link to="/" class="mt-4 text-indigo-600 hover:underline">กลับหน้าแรก</router-link>
+      <router-link to="/home" class="mt-4 text-indigo-600 hover:underline">กลับหน้าแรก</router-link>
     </div>
 
     <div v-else class="mx-auto max-w-[1200px] px-4 md:px-8 py-8">

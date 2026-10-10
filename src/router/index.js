@@ -19,7 +19,8 @@ const AdminApproval = () => import('../views/AdminApproval.vue')
 const AdminSettings = () => import('../views/AdminSettings.vue')
 
 const routes = [
-  { path: '/', component: Home, meta: { access: 'all' } },
+  { path: '/', redirect: '/auth' },
+  { path: '/home', component: Home, meta: { access: 'all' } },
   { path: '/hotel/:id', component: HotelDetail, meta: { access: 'all' } },
   { path: '/auth', component: Auth, meta: { access: 'guest' } },
   { path: '/auth/forgot', component: ForgotPassword, meta: { access: 'guest' } },
@@ -46,22 +47,31 @@ router.beforeEach((to, from, next) => {
   const role = session?.role || null
   const access = to.meta.access
 
-  if (access === 'all') return next()
+  // Handle root / route
+  if (to.path === '/') {
+    if (!session) return next('/auth')
+    if (role === 'user') return next('/home')
+    if (role === 'manager') return next('/manager')
+    if (role === 'admin') return next('/admin')
+    return next('/auth')
+  }
 
-  // If already logged in, redirect away from /auth
+  // If already logged in, redirect away from guest-only pages (/auth, /auth/forgot)
   if (access === 'guest') {
-    if (role === 'user') return next('/')
+    if (role === 'user') return next('/home')
     if (role === 'manager') return next('/manager')
     if (role === 'admin') return next('/admin')
     return next()
   }
+
+  if (access === 'all') return next()
 
   // Protected routes
   if (!session) {
     return next(`/auth?redirect=${encodeURIComponent(to.fullPath)}&reason=login_required`)
   }
   if (access !== role) {
-    const home = role === 'manager' ? '/manager' : role === 'admin' ? '/admin' : '/'
+    const home = role === 'manager' ? '/manager' : role === 'admin' ? '/admin' : '/home'
     return next(home)
   }
   next()
@@ -70,3 +80,4 @@ router.beforeEach((to, from, next) => {
 router.afterEach(() => { sweepExpired() })
 
 export default router
+

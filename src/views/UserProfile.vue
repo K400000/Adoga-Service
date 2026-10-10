@@ -40,7 +40,7 @@ function saveNickname() {
   if (idx !== -1) { users[idx] = { ...users[idx], nickname: nickname.value.trim() }; db['adoga_users'] = users }
 }
 
-function doLogout() { logout(); router.push('/') }
+function doLogout() { logout(); router.push('/auth') }
 
 // Refund modal
 const showRefundModal = ref(false)
