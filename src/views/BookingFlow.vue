@@ -101,7 +101,7 @@ async function doPay() {
   payLoading.value = true
   startPayment(booking.value.id)
   refreshBooking()
-  await new Promise(r => setTimeout(r, 2000))
+  await new Promise(r => setTimeout(r, 600))
   finishPayment(booking.value.id, !simulateFail.value)
   refreshBooking()
   payLoading.value = false

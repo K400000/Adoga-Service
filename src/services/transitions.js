@@ -45,7 +45,6 @@ export function startPayment(bookingId) {
   const idx = bookings.findIndex(b => b.id === bookingId)
   if (idx === -1) throw new Error('Booking not found')
   transition('payment', bookings[idx], 'verifying')
-  bookings[idx] = { ...bookings[idx], paymentStatus: 'verifying' }
   saveBookings(bookings)
 }
 
@@ -54,10 +53,10 @@ export function finishPayment(bookingId, success) {
   const idx = bookings.findIndex(b => b.id === bookingId)
   if (idx === -1) throw new Error('Booking not found')
   if (success) {
-    bookings[idx] = { ...bookings[idx], paymentStatus: 'success' }
+    transition('payment', bookings[idx], 'success')
     transition('booking', bookings[idx], 'confirmed')
   } else {
-    bookings[idx] = { ...bookings[idx], paymentStatus: 'failed' }
+    transition('payment', bookings[idx], 'failed')
   }
   saveBookings(bookings)
 }
@@ -66,7 +65,7 @@ export function retryPayment(bookingId) {
   const bookings = [...(db['adoga_bookings'] || [])]
   const idx = bookings.findIndex(b => b.id === bookingId)
   if (idx === -1) throw new Error('Booking not found')
-  bookings[idx] = { ...bookings[idx], paymentStatus: 'awaiting' }
+  transition('payment', bookings[idx], 'awaiting')
   saveBookings(bookings)
 }
 

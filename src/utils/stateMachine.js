@@ -35,12 +35,17 @@ export const TRANSITIONS = {
 }
 
 export function transition(entity, record, to) {
-  const allowed = TRANSITIONS[entity]?.[record.status] ?? []
+  const currentStatus = entity === 'payment' ? (record.paymentStatus || record.status) : record.status
+  const allowed = TRANSITIONS[entity]?.[currentStatus] ?? []
   if (!allowed.includes(to)) {
-    throw new Error(`[StateMachine] Invalid transition: ${entity} ${record.status} → ${to}`)
+    throw new Error(`[StateMachine] Invalid transition: ${entity} ${currentStatus} → ${to}`)
   }
   if (!record.statusHistory) record.statusHistory = []
-  record.statusHistory.push({ status: record.status, at: new Date().toISOString() })
-  record.status = to
+  record.statusHistory.push({ entity, from: currentStatus, to, at: new Date().toISOString() })
+  if (entity === 'payment') {
+    record.paymentStatus = to
+  } else {
+    record.status = to
+  }
   return record
 }
