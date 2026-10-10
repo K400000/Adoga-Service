@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "@fontsource/prompt/500.css";
+@import "@fontsource/prompt/600.css";
+@import "@fontsource/ibm-plex-sans-thai/400.css";
+@import "@fontsource/ibm-plex-sans-thai/500.css";
+
+@theme {
+  --font-display: "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #F7F8FB;
+  --color-ink: #1B1F3B;
+  --color-ink-muted: #5B6078;
+  --color-line: #E4E7F0;
+  --color-coral-50: #FFF1EE;
+  --color-coral-500: #FF6B57;
+  --color-coral-600: #CF3F2A;
+  --color-coral-700: #A8321F;
+  --shadow-e1: 0 2px 8px rgb(27 31 59 / .06);
+  --shadow-e2: 0 8px 24px rgb(27 31 59 / .10);
+  --shadow-e3: 0 24px 48px rgb(27 31 59 / .18);
+  --ease-out-soft: cubic-bezier(.2, .8, .2, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: "IBM Plex Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background-color: #F7F8FB;
+  color: #1B1F3B;
+  font-size: 16px;
+  line-height: 1.625;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E4E7F0;
+  border-radius: 9999px;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Tabular nums for prices */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Font display */
+.font-display {
+  font-family: "Prompt", ui-sans-serif, system-ui, sans-serif;
+}

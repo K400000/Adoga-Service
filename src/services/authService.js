@@ -1,0 +1,70 @@
+// src/services/authService.js
+import { db } from '../stores/db.js'
+import { set } from '../utils/storage.js'
+import { validateEmailUnique, validatePassword, validateName } from '../utils/validators.js'
+
+function nextId(role) {
+  const prefix = { user: 'U', manager: 'M', admin: 'A' }[role]
+  const users = db['adoga_users'] || []
+  const nums = users.filter(u => u.id.startsWith(prefix)).map(u => parseInt(u.id.slice(1)) || 0)
+  return prefix + String(Math.max(0, ...nums) + 1).padStart(3, '0')
+}
+
+export function register({ email, password, firstName, lastName, nickname, role, provider = 'local' }) {
+  const users = db['adoga_users'] || []
+  const emailVal = validateEmailUnique(email, users)
+  if (!emailVal.valid) return { ok: false, message: emailVal.message }
+  const pwVal = validatePassword(password)
+  if (!pwVal.valid) return { ok: false, message: pwVal.message }
+  const fnVal = validateName(firstName, 'ชื่อ')
+  if (!fnVal.valid) return { ok: false, message: fnVal.message }
+  const lnVal = validateName(lastName, 'นามสกุล')
+  if (!lnVal.valid) return { ok: false, message: lnVal.message }
+  if (!role) return { ok: false, message: 'กรุณาเลือกบทบาท' }
+
+  const user = {
+    id: nextId(role),
+    email: email.trim().toLowerCase(),
+    password,
+    role,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    nickname: nickname?.trim() || firstName.trim(),
+    provider,
+    createdAt: new Date().toISOString(),
+  }
+  db['adoga_users'] = [...users, user]
+  return { ok: true, user }
+}
+
+export function login(email, password) {
+  const users = db['adoga_users'] || []
+  const user = users.find(u => u.email === email.trim().toLowerCase())
+  if (!user) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียน' }
+  if (user.password !== password) return { ok: false, message: 'รหัสผ่านไม่ถูกต้อง' }
+  const session = { userId: user.id, role: user.role }
+  db['adoga_current_session'] = session
+  return { ok: true, session, user }
+}
+
+export function logout() {
+  db['adoga_current_session'] = null
+}
+
+export function resetPassword(email, newPassword) {
+  const users = db['adoga_users'] || []
+  const idx = users.findIndex(u => u.email === email.trim().toLowerCase())
+  if (idx === -1) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ' }
+  const pwVal = validatePassword(newPassword)
+  if (!pwVal.valid) return { ok: false, message: pwVal.message }
+  users[idx] = { ...users[idx], password: newPassword }
+  db['adoga_users'] = users
+  return { ok: true }
+}
+
+export function getCurrentUser() {
+  const session = db['adoga_current_session']
+  if (!session) return null
+  const users = db['adoga_users'] || []
+  return users.find(u => u.id === session.userId) || null
+}
