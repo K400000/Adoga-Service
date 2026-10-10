@@ -11,7 +11,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import { 
-  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search, Lock
+  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search, Lock, Edit2
 } from '@lucide/vue'
 
 const searchQuery = ref('')
@@ -27,6 +27,15 @@ const newHotelName = ref('')
 const newPassword = ref('Adoga1234')
 const modalError = ref('')
 const modalLoading = ref(false)
+
+// Edit Manager Modal state
+const showEditModal = ref(false)
+const editingAccount = ref(null)
+const editGmail = ref('')
+const editHotelName = ref('')
+const editNickname = ref('')
+const editModalError = ref('')
+const editModalLoading = ref(false)
 
 const todayFormatted = computed(() => formatDate(new Date().toISOString()))
 
@@ -136,6 +145,55 @@ async function handleAddManager() {
   newLastName.value = ''
   newHotelName.value = ''
 }
+
+function openEditModal(account) {
+  editingAccount.value = account
+  editGmail.value = account.email || ''
+  editHotelName.value = account.hotelName || ''
+  editNickname.value = account.nickname || ''
+  editModalError.value = ''
+  showEditModal.value = true
+}
+
+async function handleUpdateManager() {
+  editModalError.value = ''
+  if (!editGmail.value.trim() || !editHotelName.value.trim() || !editNickname.value.trim()) {
+    editModalError.value = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง'
+    return
+  }
+
+  editModalLoading.value = true
+  await new Promise(r => setTimeout(r, 300))
+
+  const targetUserId = editingAccount.value.id
+
+  // 1. Update user record in db['adoga_users']
+  const userObj = db['adoga_users']?.find(u => u.id === targetUserId)
+  if (userObj) {
+    userObj.email = editGmail.value.trim()
+    userObj.nickname = editNickname.value.trim()
+    userObj.firstName = editNickname.value.trim()
+  }
+
+  // 2. Update hotel record in db['adoga_hotels']
+  const hotelObj = db['adoga_hotels']?.find(h => h.managerId === targetUserId)
+  if (hotelObj) {
+    hotelObj.name = editHotelName.value.trim()
+  } else {
+    // Create hotel if not present
+    createHotel({
+      managerId: targetUserId,
+      name: editHotelName.value.trim(),
+      location: 'ชลบุรี',
+      description: 'โรงแรมที่พักพาร์ทเนอร์ Adoga Service',
+      pricePerNight: 1800
+    })
+  }
+
+  editModalLoading.value = false
+  showEditModal.value = false
+  showToast('แก้ไขรายละเอียดผู้จัดการโรงแรมเรียบร้อยแล้ว', 'success')
+}
 </script>
 
 <template>
@@ -242,6 +300,7 @@ async function handleAddManager() {
                 <th class="py-4 px-6">ชื่อเล่น / Username</th>
                 <th class="py-4 px-6">วันที่สร้าง</th>
                 <th class="py-4 px-6 text-center">สิทธิ์การเข้าใช้งาน (Toggle)</th>
+                <th class="py-4 px-6 text-center">จัดการ</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-line text-sm">
@@ -306,10 +365,23 @@ async function handleAddManager() {
                     </span>
                   </div>
                 </td>
+
+                <!-- Edit Action Column -->
+                <td class="py-4 px-6 text-center">
+                  <button
+                    @click="openEditModal(acc)"
+                    type="button"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-semibold transition-all cursor-pointer border border-slate-200 hover:border-indigo-200 shadow-2xs"
+                    title="แก้ไขรายละเอียด"
+                  >
+                    <Edit2 class="w-3.5 h-3.5 text-indigo-600" />
+                    <span>แก้ไขรายละเอียด</span>
+                  </button>
+                </td>
               </tr>
 
               <tr v-if="filteredAccounts.length === 0">
-                <td colspan="5" class="py-12 text-center text-ink-muted">
+                <td colspan="6" class="py-12 text-center text-ink-muted">
                   ไม่พบบัญชีผู้จัดการโรงแรมตามเงื่อนไขที่ค้นหา
                 </td>
               </tr>
@@ -377,5 +449,65 @@ async function handleAddManager() {
         </div>
       </form>
     </BaseModal>
+
+    <!-- Modal: Admin แก้ไขรายละเอียดผู้จัดการโรงแรม -->
+    <BaseModal
+      v-model="showEditModal"
+      title="แก้ไขรายละเอียดผู้จัดการโรงแรม"
+      size="md"
+    >
+      <form @submit.prevent="handleUpdateManager" class="flex flex-col gap-4 py-2">
+        <p class="text-xs text-slate-500">
+          แก้ไขข้อมูล Gmail, ชื่อโรงแรม และชื่อเล่นของผู้จัดการโรงแรมในระบบ
+        </p>
+
+        <div v-if="editModalError" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
+          {{ editModalError }}
+        </div>
+
+        <!-- Gmail -->
+        <BaseInput
+          label="Gmail"
+          type="email"
+          v-model="editGmail"
+          placeholder="เช่น manager.hotel@gmail.com"
+          required
+        />
+
+        <!-- ชื่อโรงแรม -->
+        <BaseInput
+          label="ชื่อโรงแรม"
+          v-model="editHotelName"
+          placeholder="เช่น Chonburi Sea View Resort"
+          required
+        />
+
+        <!-- ชื่อเล่น -->
+        <BaseInput
+          label="ชื่อเล่น"
+          v-model="editNickname"
+          placeholder="เช่น Chai, Suda"
+          required
+        />
+
+        <!-- วันที่สร้าง ( อ่านเท่านั้น ) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            วันที่สร้าง <span class="text-slate-400 font-normal">(อ่านเท่านั้น)</span>
+          </label>
+          <div class="flex items-center gap-2 px-3.5 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-sm font-medium cursor-not-allowed select-none">
+            <Calendar class="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <span>{{ formatDate(editingAccount?.createdAt || new Date().toISOString()) }}</span>
+            <Lock class="w-3.5 h-3.5 text-slate-400 ml-auto flex-shrink-0" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-4">
+          <BaseButton type="button" variant="outline" @click="showEditModal = false">ยกเลิก</BaseButton>
+          <BaseButton type="submit" variant="secondary" :loading="editModalLoading">บันทึกการแก้ไข</BaseButton>
+        </div>
+      </form>
+    </BaseModal>
   </div>
 </template>
+

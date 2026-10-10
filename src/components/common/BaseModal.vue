@@ -1,14 +1,17 @@
 <script setup>
 // src/components/common/BaseModal.vue
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { X } from '@lucide/vue'
 
 const props = defineProps({
-  open: { type: Boolean, required: true },
+  open: { type: Boolean, default: false },
+  modelValue: { type: Boolean, default: false },
   title: String,
   size: { type: String, default: 'md' }, // md=448, lg=512
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'update:modelValue'])
+
+const isOpen = computed(() => props.open || props.modelValue)
 
 const sizeClass = {
   sm: 'max-w-sm',
@@ -19,7 +22,12 @@ const sizeClass = {
   '3xl': 'max-w-4xl',
 }
 
-function onKey(e) { if (e.key === 'Escape' && props.open) emit('close') }
+function handleClose() {
+  emit('close')
+  emit('update:modelValue', false)
+}
+
+function onKey(e) { if (e.key === 'Escape' && isOpen.value) handleClose() }
 onMounted(() => document.addEventListener('keydown', onKey))
 onUnmounted(() => document.removeEventListener('keydown', onKey))
 </script>
@@ -28,14 +36,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
   <Teleport to="body">
     <Transition name="modal">
       <div
-        v-if="open"
+        v-if="isOpen"
         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
         role="dialog"
         aria-modal="true"
-        @click.self="emit('close')"
+        @click.self="handleClose"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm" @click="emit('close')" />
+        <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm" @click="handleClose" />
         <!-- Panel -->
         <div
           :class="[
@@ -48,7 +56,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
           <div v-if="title" class="flex items-start justify-between mb-4">
             <h3 class="text-lg font-semibold font-display text-ink pr-8">{{ title }}</h3>
             <button
-              @click="emit('close')"
+              @click="handleClose"
               class="w-11 h-11 -mt-1 -mr-2 flex items-center justify-center rounded-full text-ink-muted hover:bg-slate-100 transition-colors"
               aria-label="ปิด"
             >
