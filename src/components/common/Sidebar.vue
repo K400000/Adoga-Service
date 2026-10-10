@@ -56,7 +56,7 @@ function doLogout() {
       <div class="flex flex-col gap-6">
         <!-- Logo -->
         <div class="flex flex-col gap-1 px-1">
-          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-10 w-auto object-contain self-start" />
+          <img src="/docs/ui-specs/adoga_logo.png" alt="Adoga" class="h-20 w-auto object-contain self-start" />
           <span :class="['text-[11px] font-extrabold uppercase tracking-wider px-1 py-0.5 rounded-md self-start border', effectiveType === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200']">
             {{ effectiveType === 'admin' ? 'System Console' : 'Partner Portal' }}
           </span>

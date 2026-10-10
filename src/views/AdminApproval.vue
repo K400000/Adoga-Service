@@ -1,6 +1,6 @@
 <script setup>
 // src/views/AdminApproval.vue
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { db } from '../stores/db.js'
 import { approveHotel, rejectHotel } from '../services/transitions.js'
 import { formatPrice } from '../utils/date.js'
@@ -8,11 +8,41 @@ import StatusBadge from '../components/common/StatusBadge.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import { RouterLink } from 'vue-router'
-import { CheckSquare, Settings, LayoutDashboard, Info } from '@lucide/vue'
+import { CheckSquare, Settings, LayoutDashboard, Info, Search, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { FALLBACK_IMAGE } from '../constants/images.js'
+import Sidebar from '../components/common/Sidebar.vue'
 
 const pendingHotels = computed(() => (db['adoga_hotels'] || []).filter(h => h.status === 'pending'))
 const allHotels = computed(() => db['adoga_hotels'] || [])
+
+const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const filteredHotels = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return allHotels.value
+  return allHotels.value.filter(h => {
+    const nameMatch = h.name?.toLowerCase().includes(query)
+    const locMatch = h.location?.toLowerCase().includes(query)
+    const manager = getManager(h.managerId)
+    const managerMatch = manager && (
+      `${manager.firstName || ''} ${manager.lastName || ''} ${manager.nickname || ''} ${manager.email || ''}`.toLowerCase().includes(query)
+    )
+    return nameMatch || locMatch || managerMatch
+  })
+})
+
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
+const totalPages = computed(() => Math.ceil(filteredHotels.value.length / pageSize.value) || 1)
+
+const paginatedHotels = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredHotels.value.slice(start, start + pageSize.value)
+})
 
 const showRejectModal = ref(false)
 const rejectHotelId = ref('')
@@ -41,7 +71,6 @@ function openReject(id) { rejectHotelId.value = id; rejectReason.value = ''; sho
 function doReject() { rejectHotel(rejectHotelId.value, rejectReason.value); showRejectModal.value = false }
 
 function getManager(managerId) { return (db['adoga_users'] || []).find(u => u.id === managerId) }
-import Sidebar from '../components/common/Sidebar.vue'
 </script>
 
 <template>
@@ -85,9 +114,28 @@ import Sidebar from '../components/common/Sidebar.vue'
 
       <!-- All hotels list -->
       <div class="mt-12">
-        <h2 class="font-display font-semibold text-xl text-ink mb-4">โรงแรมทั้งหมด</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 class="font-display font-semibold text-xl text-ink">โรงแรมทั้งหมด</h2>
+            <p class="text-xs text-ink-muted mt-0.5">รวมทั้งหมด {{ filteredHotels.length }} แห่ง</p>
+          </div>
+          <!-- Search Box -->
+          <div class="relative w-full sm:w-72">
+            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="ค้นหาชื่อโรงแรม หรือ ทำเล..."
+              class="w-full pl-9 pr-4 py-2 text-sm bg-white rounded-xl border border-line focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs"
+            />
+          </div>
+        </div>
+
         <div class="bg-white rounded-2xl border border-line overflow-hidden">
-          <table class="w-full text-sm">
+          <div v-if="!filteredHotels.length" class="py-12 text-center text-ink-muted text-sm">
+            ไม่พบโรงแรมที่ค้นหา "{{ searchQuery }}"
+          </div>
+          <table v-else class="w-full text-sm">
             <thead class="bg-canvas">
               <tr>
                 <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">ชื่อ</th>
@@ -98,11 +146,11 @@ import Sidebar from '../components/common/Sidebar.vue'
               </tr>
             </thead>
             <tbody>
-              <tr v-for="h in allHotels" :key="h.id" class="border-t border-line hover:bg-slate-50">
+              <tr v-for="h in paginatedHotels" :key="h.id" class="border-t border-line hover:bg-slate-50">
                 <td class="py-3 px-4 font-medium text-ink">{{ h.name }}</td>
                 <td class="py-3 px-4 text-ink-muted">{{ h.location }}</td>
                 <td class="py-3 px-4"><StatusBadge entity="hotel" :value="h.status" size="sm" /></td>
-                <td class="py-3 px-4 text-ink-muted">{{ getManager(h.managerId)?.nickname || h.managerId }}</td>
+                <td class="py-3 px-4 text-ink-muted">{{ getManager(h.managerId)?.nickname || getManager(h.managerId)?.firstName || h.managerId }}</td>
                 <td class="py-3 px-4">
                   <BaseButton @click="openInfoModal(h)" variant="ghost" size="sm">
                     <Info class="w-3.5 h-3.5 mr-1" /> รายละเอียด
@@ -111,6 +159,44 @@ import Sidebar from '../components/common/Sidebar.vue'
               </tr>
             </tbody>
           </table>
+
+          <!-- Pagination Footer (> 10 items) -->
+          <div v-if="filteredHotels.length > pageSize" class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-slate-50/50 border-t border-line">
+            <p class="text-xs text-ink-muted">
+              แสดง {{ ((currentPage - 1) * pageSize) + 1 }} - {{ Math.min(currentPage * pageSize, filteredHotels.length) }} จาก {{ filteredHotels.length }} โรงแรม
+            </p>
+            <div class="flex items-center gap-1.5">
+              <button
+                @click="currentPage--"
+                :disabled="currentPage === 1"
+                class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="หน้าก่อนหน้า"
+              >
+                <ChevronLeft class="w-4 h-4" />
+              </button>
+              
+              <button
+                v-for="p in totalPages"
+                :key="p"
+                @click="currentPage = p"
+                :class="[
+                  'px-3 py-1 rounded-lg text-xs font-semibold transition-colors',
+                  currentPage === p ? 'bg-indigo-600 text-white' : 'bg-white border border-line text-slate-600 hover:bg-slate-100'
+                ]"
+              >
+                {{ p }}
+              </button>
+
+              <button
+                @click="currentPage++"
+                :disabled="currentPage >= totalPages"
+                class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="หน้าถัดไป"
+              >
+                <ChevronRight class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -229,8 +315,7 @@ import Sidebar from '../components/common/Sidebar.vue'
 
         <!-- Actions in Modal -->
         <div class="flex items-center justify-between pt-4 border-t border-line mt-2">
-          <!-- ปิดหน้าต่าง แต่ของหุบไว้ก่อน -->
-          <BaseButton variant="" size="md"></BaseButton> 
+          <BaseButton @click="showInfoModal = false" variant="ghost" size="md">ปิดหน้าต่าง</BaseButton> 
           <div v-if="selectedHotel.status === 'pending'" class="flex gap-2">
             <BaseButton @click="openRejectFromModal(selectedHotel.id)" variant="danger" size="md">ปฏิเสธ</BaseButton>
             <BaseButton @click="doApproveFromModal(selectedHotel.id)" variant="secondary" size="md">อนุมัติโรงแรม</BaseButton>
@@ -240,3 +325,4 @@ import Sidebar from '../components/common/Sidebar.vue'
     </BaseModal>
   </div>
 </template>
+
