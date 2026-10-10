@@ -8,7 +8,7 @@ import StatusBadge from '../components/common/StatusBadge.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import { RouterLink } from 'vue-router'
-import { CheckSquare, Settings, LayoutDashboard, Info, Search, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { CheckSquare, Settings, LayoutDashboard, Info, Search, ChevronLeft, ChevronRight, MapPin, User, Users, Sparkles } from '@lucide/vue'
 import { FALLBACK_IMAGE } from '../constants/images.js'
 import Sidebar from '../components/common/Sidebar.vue'
 
@@ -94,8 +94,14 @@ function getManager(managerId) { return (db['adoga_users'] || []).find(u => u.id
                 <h3 class="font-display font-semibold text-xl text-ink">{{ hotel.name }}</h3>
                 <StatusBadge entity="hotel" value="pending" size="sm" />
               </div>
-              <p class="text-sm text-ink-muted mb-1">📍 {{ hotel.location }}</p>
-              <p class="text-sm text-ink-muted mb-3">ผู้จัดการ: {{ getManager(hotel.managerId)?.nickname || hotel.managerId }}</p>
+              <p class="text-sm text-ink-muted flex items-center gap-1.5 mb-1">
+                <MapPin class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                <span>{{ hotel.location }}</span>
+              </p>
+              <p class="text-sm text-ink-muted flex items-center gap-1.5 mb-3">
+                <User class="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <span>ผู้จัดการ: {{ getManager(hotel.managerId)?.nickname || hotel.managerId }}</span>
+              </p>
               <p class="text-sm text-ink mb-4">{{ hotel.description }}</p>
               <div class="flex flex-wrap gap-2 mb-4">
                 <span v-for="a in hotel.amenities" :key="a" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-ink-muted">{{ a }}</span>
@@ -224,11 +230,13 @@ function getManager(managerId) { return (db['adoga_users'] || []).find(u => u.id
               <StatusBadge entity="hotel" :value="selectedHotel.status" size="sm" />
             </div>
             <p class="text-sm text-ink-muted flex items-center gap-1.5 mb-1">
-              📍 <span class="font-medium">{{ selectedHotel.location }}</span>
+              <MapPin class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+              <span class="font-medium">{{ selectedHotel.location }}</span>
             </p>
-            <p class="text-xs text-ink-muted">
-              👤 ผู้จัดการ: <span class="font-semibold text-ink">{{ getManager(selectedHotel.managerId)?.firstName }} {{ getManager(selectedHotel.managerId)?.lastName || '' }}</span>
-              <span class="text-slate-400 ml-1">({{ getManager(selectedHotel.managerId)?.email || selectedHotel.managerId }})</span>
+            <p class="text-xs text-ink-muted flex items-center gap-1">
+              <User class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span>ผู้จัดการ: <span class="font-semibold text-ink">{{ getManager(selectedHotel.managerId)?.firstName }} {{ getManager(selectedHotel.managerId)?.lastName || '' }}</span>
+              <span class="text-slate-400 ml-1">({{ getManager(selectedHotel.managerId)?.email || selectedHotel.managerId }})</span></span>
             </p>
           </div>
           <div class="bg-white p-3.5 rounded-xl border border-line text-right flex-shrink-0 self-start sm:self-auto shadow-2xs">
@@ -256,7 +264,7 @@ function getManager(managerId) { return (db['adoga_users'] || []).find(u => u.id
           <div v-if="!selectedHotel.amenities?.length" class="text-xs text-slate-400">ไม่มีข้อมูลสิ่งอำนวยความสะดวก</div>
           <div v-else class="flex flex-wrap gap-2">
             <span v-for="a in selectedHotel.amenities" :key="a" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5">
-              <span>✨</span> {{ a }}
+              <Sparkles class="w-3.5 h-3.5 text-indigo-500" /> {{ a }}
             </span>
           </div>
         </div>
@@ -276,7 +284,10 @@ function getManager(managerId) { return (db['adoga_users'] || []).find(u => u.id
                 <div class="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <h5 class="font-semibold text-sm text-ink">{{ room.type }}</h5>
-                    <p class="text-xs text-ink-muted">👥 รองรับ {{ room.capacity }} ท่าน</p>
+                    <p class="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
+                      <Users class="w-3.5 h-3.5 text-slate-400" />
+                      <span>รองรับ {{ room.capacity }} ท่าน</span>
+                    </p>
                   </div>
                   <span class="font-display font-bold text-sm text-indigo-600 tabular-nums whitespace-nowrap">{{ formatPrice(room.price) }} / คืน</span>
                 </div>

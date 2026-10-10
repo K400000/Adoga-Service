@@ -8,7 +8,7 @@ import { formatPrice, formatDate } from '../utils/date.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
-import { MapPin, Star, ChevronLeft, ChevronRight, MessageCircle, Info, BedDouble, Sparkles, X, Images } from '@lucide/vue'
+import { MapPin, Star, ChevronLeft, ChevronRight, MessageCircle, Info, BedDouble, Sparkles, X, Images, Users, Waves, Wifi, Coffee, Car, Dumbbell, Utensils, Compass, Palmtree, Trees, Check } from '@lucide/vue'
 import { FALLBACK_IMAGE } from '../constants/images.js'
 
 const route = useRoute()
@@ -31,9 +31,17 @@ const avgRating = computed(() => {
 })
 
 const amenityIcon = {
-  'สระว่ายน้ำ': '🏊', 'WiFi ฟรี': '📶', 'อาหารเช้า': '☕', 'ที่จอดรถ': '🚗',
-  'สปา': '💆', 'ฟิตเนส': '🏋️', 'ร้านอาหาร': '🍽️', 'กิจกรรมดำน้ำ': '🤿',
-  'หาดส่วนตัว': '🏖️', 'สวนสวย': '🌿',
+  'สระว่ายน้ำ': Waves,
+  'WiFi ฟรี': Wifi,
+  'ฟรี Wi-Fi': Wifi,
+  'อาหารเช้า': Coffee,
+  'ที่จอดรถ': Car,
+  'สปา': Sparkles,
+  'ฟิตเนส': Dumbbell,
+  'ร้านอาหาร': Utensils,
+  'กิจกรรมดำน้ำ': Compass,
+  'หาดส่วนตัว': Palmtree,
+  'สวนสวย': Trees,
 }
 
 const activeTab = ref('info')
@@ -254,7 +262,7 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
               <h3 class="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">จุดเด่น & บริการยอดนิยม</h3>
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div v-for="a in hotel.amenities" :key="a" class="flex items-center gap-2.5 p-3 bg-slate-50/80 rounded-xl border border-slate-100 text-sm text-ink font-medium">
-                  <span class="text-base">{{ amenityIcon[a] || '✓' }}</span>
+                  <component :is="amenityIcon[a] || Check" class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                   <span>{{ a }}</span>
                 </div>
               </div>
@@ -296,7 +304,8 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
                       <span v-else class="text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 flex-shrink-0">เต็ม</span>
                     </div>
                     <p class="text-sm text-ink-muted flex items-center gap-1.5 mb-3">
-                      <span>👥 รองรับ {{ room.capacity }} ท่าน</span>
+                      <Users class="w-4 h-4 text-slate-400" />
+                      <span>รองรับ {{ room.capacity }} ท่าน</span>
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span v-for="u in room.units" :key="u.no">
@@ -344,7 +353,9 @@ const availableCount = (room) => room.units?.filter(u => u.status === 'available
 
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
               <div v-for="a in hotel.amenities" :key="a" class="flex items-center gap-3.5 p-4 bg-slate-50/70 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors">
-                <span class="text-2xl">{{ amenityIcon[a] || '✓' }}</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <component :is="amenityIcon[a] || Check" class="w-5 h-5" />
+                </div>
                 <span class="text-sm font-medium text-ink">{{ a }}</span>
               </div>
             </div>

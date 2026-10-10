@@ -13,7 +13,7 @@ import BaseButton from '../components/common/BaseButton.vue'
 import {
   ShieldCheck, ArrowLeft, CheckCircle2, Clock,
   CreditCard, Wallet, Landmark, PhoneCall, MessageSquare,
-  Lock, AlertCircle, FileText, ChevronRight, Check
+  Lock, AlertCircle, FileText, ChevronRight, Check, MapPin
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -181,8 +181,9 @@ function handleDone() {
                     ✓ ยืนยันแล้ว (จองสำเร็จ)
                   </span>
                 </div>
-                <p class="text-sm font-medium text-slate-500 flex items-center gap-1">
-                  <span>📍 {{ hotel?.location }}</span>
+                <p class="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                  <MapPin class="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                  <span>{{ hotel?.location }}</span>
                 </p>
                 <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600 font-medium">
                   <p>ประเภทห้อง: <strong class="text-slate-800">{{ room?.type || 'Standard Room' }}</strong></p>
@@ -216,7 +217,7 @@ function handleDone() {
                   </p>
                   <p class="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
                     <Clock class="w-4 h-4 text-amber-500" />
-                    <span>⏱️ เหลือเวลาสำหรับการยกเลิกฟรีอีก: 3 วัน 14 ชั่วโมง</span>
+                    <span>เหลือเวลาสำหรับการยกเลิกฟรีอีก: 3 วัน 14 ชั่วโมง</span>
                   </p>
                 </div>
               </div>

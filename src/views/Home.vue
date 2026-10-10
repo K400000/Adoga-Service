@@ -10,7 +10,7 @@ import Footer from '../components/common/Footer.vue'
 import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
 import {
   Search, MapPin, Hotel, ChevronDown,
-  Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw
+  Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw, Flame
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -49,13 +49,13 @@ const thaiProvincesGrouped = [
 ]
 
 const popularProvinces = [
-  { label: '📍 ทุกจังหวัด', value: 'all' },
-  { label: '🔥 ชลบุรี', value: 'ชลบุรี' },
-  { label: '🔥 เชียงใหม่', value: 'เชียงใหม่' },
-  { label: '🔥 ภูเก็ต', value: 'ภูเก็ต' },
-  { label: '🔥 กรุงเทพฯ', value: 'กรุงเทพ' },
-  { label: '🔥 กระบี่', value: 'กระบี่' },
-  { label: '🔥 ประจวบคีรีขันธ์', value: 'ประจวบ' },
+  { label: 'ทุกจังหวัด', value: 'all', icon: MapPin },
+  { label: 'ชลบุรี', value: 'ชลบุรี', icon: Flame },
+  { label: 'เชียงใหม่', value: 'เชียงใหม่', icon: Flame },
+  { label: 'ภูเก็ต', value: 'ภูเก็ต', icon: Flame },
+  { label: 'กรุงเทพฯ', value: 'กรุงเทพ', icon: Flame },
+  { label: 'กระบี่', value: 'กระบี่', icon: Flame },
+  { label: 'ประจวบคีรีขันธ์', value: 'ประจวบ', icon: Flame },
 ]
 
 const availableAmenities = [
@@ -185,7 +185,7 @@ function doSearch() {
                     v-model="filterLocation"
                     class="w-full bg-transparent text-slate-900 font-semibold text-sm sm:text-base outline-none cursor-pointer pr-4 appearance-none"
                   >
-                    <option value="all">📍 ทุกจังหวัด / ทั้งหมด (77 จังหวัด)</option>
+                    <option value="all">ทุกจังหวัด / ทั้งหมด (77 จังหวัด)</option>
                     <optgroup v-for="group in thaiProvincesGrouped" :key="group.region" :label="`── ${group.region} ──`">
                       <option v-for="prov in group.provinces" :key="prov" :value="prov">
                         {{ prov }}
@@ -206,13 +206,14 @@ function doSearch() {
                 @click="filterLocation = pop.value"
                 type="button"
                 :class="[
-                  'flex-shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-all snap-start cursor-pointer border',
+                  'flex-shrink-0 h-8 px-3.5 rounded-full text-xs font-medium transition-all snap-start cursor-pointer border flex items-center gap-1.5',
                   (filterLocation === pop.value || (pop.value !== 'all' && filterLocation.includes(pop.value)))
                     ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-200 hover:bg-blue-50/50'
                 ]"
               >
-                {{ pop.label }}
+                <component :is="pop.icon" class="w-3.5 h-3.5" />
+                <span>{{ pop.label }}</span>
               </button>
             </div>
 
