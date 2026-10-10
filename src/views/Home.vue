@@ -7,13 +7,44 @@ import { useSession } from '../stores/session.js'
 import HotelCard from '../components/common/HotelCard.vue'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
-import { Search, MapPin, Sparkles } from '@lucide/vue'
+import {
+  Search, MapPin, Calendar, Users, Hotel, ChevronDown,
+  Wifi, Waves, Dumbbell, Utensils, Sparkles, Car, Check, RefreshCw
+} from '@lucide/vue'
 
 const router = useRouter()
 const { isGuest } = useSession()
 
 const searchQuery = ref('')
 const filterLocation = ref('all')
+const selectedAmenities = ref([])
+const checkInDate = ref('2026-10-20')
+const checkOutDate = ref('2026-10-21')
+const guestsCount = ref('2 ท่าน 1 ห้อง')
+
+const availableAmenities = [
+  { id: 'wifi', label: 'ฟรี Wi-Fi', keyword: 'WiFi', icon: Wifi },
+  { id: 'pool', label: 'สระว่ายน้ำ', keyword: 'สระว่ายน้ำ', icon: Waves },
+  { id: 'fitness', label: 'ฟิตเนส', keyword: 'ฟิตเนส', icon: Dumbbell },
+  { id: 'breakfast', label: 'อาหารเช้า', keyword: 'อาหารเช้า', icon: Utensils },
+  { id: 'spa', label: 'สปา', keyword: 'สปา', icon: Sparkles },
+  { id: 'parking', label: 'ที่จอดรถ', keyword: 'ที่จอดรถ', icon: Car },
+]
+
+function toggleAmenity(keyword) {
+  const index = selectedAmenities.value.indexOf(keyword)
+  if (index > -1) {
+    selectedAmenities.value.splice(index, 1)
+  } else {
+    selectedAmenities.value.push(keyword)
+  }
+}
+
+function clearAllFilters() {
+  searchQuery.value = ''
+  filterLocation.value = 'all'
+  selectedAmenities.value = []
+}
 
 const activeHotels = computed(() => {
   const hotels = db['adoga_hotels'] || []
@@ -22,13 +53,25 @@ const activeHotels = computed(() => {
 
 const filteredHotels = computed(() => {
   let list = activeHotels.value
+
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(h => h.name.toLowerCase().includes(q) || h.location.toLowerCase().includes(q))
   }
+
   if (filterLocation.value !== 'all') {
     list = list.filter(h => h.location.includes(filterLocation.value))
   }
+
+  if (selectedAmenities.value.length > 0) {
+    list = list.filter(h => {
+      if (!h.amenities || !Array.isArray(h.amenities)) return false
+      return selectedAmenities.value.every(kw =>
+        h.amenities.some(a => a.toLowerCase().includes(kw.toLowerCase()))
+      )
+    })
+  }
+
   return list
 })
 
@@ -40,98 +83,193 @@ const locations = computed(() => {
 const featuredHotel = computed(() => activeHotels.value.find(h => h.rating >= 4.5) || activeHotels.value[0])
 
 function doSearch() {
-  // Filter reactivity handles search
+  // Computed filter handles real-time update
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-canvas flex flex-col justify-between">
-    <div>
-      <!-- Navbar -->
+  <div class="min-h-screen bg-canvas flex flex-col justify-between w-full overflow-x-hidden">
+    <div class="w-full">
+      <!-- Navbar (Full Width) -->
       <Navbar />
 
-      <!-- Main Container: Centered Layout max-w-[1280px] -->
-      <main class="w-full max-w-[1280px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-8 md:space-y-12">
+      <!-- Hero Banner Section (Full Bleed Edge-to-Edge 100% Screen Width) -->
+      <section class="relative w-full min-h-[460px] sm:min-h-[500px] bg-slate-900 flex flex-col items-center justify-start pt-10 sm:pt-12 pb-16 px-4 sm:px-6 overflow-hidden">
+        <!-- Edge-to-Edge Background Image (Tropical Beach Ocean Banner) -->
+        <img
+          src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2500&q=80"
+          alt="วิวทะเลและธรรมชาติประเทศไทย"
+          class="absolute inset-0 w-full h-full object-cover opacity-90"
+        />
         
-        <!-- Hero Banner Section (Full width of container, Centered search, Cover bg) -->
-        <section class="relative w-full rounded-2xl md:rounded-3xl overflow-hidden bg-slate-950 min-h-[340px] sm:min-h-[400px] md:h-[460px] flex items-center justify-center shadow-xl">
-          <!-- Background Image -->
-          <img
-            src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80"
-            alt="วิวทะเลและธรรมชาติประเทศไทย"
-            class="absolute inset-0 w-full h-full object-cover opacity-65"
-          />
-          
-          <!-- Gradient overlay for text contrast -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/30" />
+        <!-- Subtle Overlay Gradient -->
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
 
-          <!-- Hero Content -->
-          <div class="relative z-10 w-full max-w-3xl px-4 sm:px-6 text-center flex flex-col items-center py-8 md:py-0">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-medium mb-4 shadow-sm">
-              <Sparkles class="w-4 h-4 text-amber-300" />
-              <span>ระบบจองที่พักและโรงแรมออนไลน์ยอดนิยมทั่วไทย</span>
-            </div>
+        <!-- Hero Title Header -->
+        <div class="relative z-10 text-center max-w-4xl mb-6 sm:mb-8 px-4">
+          <h1 class="font-display font-bold text-white text-3xl sm:text-4xl md:text-5xl tracking-tight mb-2 drop-shadow-lg">
+            ท่องโลกทั้งใบในราคาถูกลง
+          </h1>
+          <p class="text-white/90 text-sm sm:text-base font-light drop-shadow-xs">
+            ค้นหาที่พักและโรงแรมยอดนิยมทั่วไทย · ชลบุรี · เชียงใหม่ · ภูเก็ต · กระบี่ · กรุงเทพฯ
+          </p>
+        </div>
 
-            <h1 class="font-display font-semibold text-white text-2xl sm:text-4xl md:text-5xl mb-3 leading-tight tracking-tight drop-shadow-md">
-              ค้นหาที่พักและโรงแรมยอดนิยมทั่วไทย
-            </h1>
+        <!-- Floating Agoda-Style Search Card -->
+        <div class="relative z-10 w-full max-w-5xl">
+          <!-- Top Service Tab (Hotel Only) -->
+          <div class="flex items-center gap-1 sm:gap-2 px-2 sm:px-4">
+            <button class="flex items-center gap-2 px-6 py-3 rounded-t-2xl bg-white text-blue-600 font-bold text-sm sm:text-base border-t-2 border-blue-600 shadow-md flex-shrink-0 cursor-default">
+              <Hotel class="w-5 h-5 text-blue-600" />
+              <span>ค้นหาที่พัก</span>
+            </button>
+          </div>
 
-            <p class="text-white/90 text-xs sm:text-sm md:text-base mb-6 md:mb-8 max-w-xl font-light leading-relaxed drop-shadow-sm">
-              ชลบุรี · เชียงใหม่ · ภูเก็ต · กระบี่ · ประจวบคีรีขันธ์ · สุราษฎร์ธานี · กรุงเทพฯ · น่าน
-            </p>
-
-            <!-- Search Capsule Bar -->
-            <div class="w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-full p-2 sm:p-2.5 border border-white/80 shadow-2xl flex flex-col sm:flex-row items-center gap-2">
-              <div class="flex items-center gap-2 flex-1 min-w-0 w-full px-3 py-1">
-                <Search class="w-5 h-5 text-indigo-600 flex-shrink-0" :stroke-width="2" />
+          <!-- White Search Card Content -->
+          <div class="bg-white rounded-b-3xl rounded-tr-3xl sm:rounded-tl-none p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800 relative pb-10">
+            
+            <!-- Destination Search Input (Full Width) -->
+            <div class="mb-4 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 focus-within:border-blue-600 rounded-2xl p-3 flex items-center gap-3 shadow-xs">
+              <Search class="w-6 h-6 text-slate-400 flex-shrink-0" :stroke-width="2" />
+              <div class="flex-1 min-w-0">
+                <label class="text-[11px] font-bold text-slate-400 uppercase block leading-none mb-1">จุดหมายปลายทาง หรือชื่อที่พัก</label>
                 <input
                   v-model="searchQuery"
                   @keydown.enter="doSearch"
                   type="text"
-                  placeholder="ค้นหาชื่อโรงแรม จังหวัด หรือทำเล..."
-                  class="w-full bg-transparent text-ink text-sm sm:text-base outline-none placeholder-slate-400 font-medium"
+                  placeholder="ใส่จุดหมายปลายทางหรือชื่อที่พัก..."
+                  class="w-full bg-transparent text-slate-900 font-semibold text-base sm:text-lg outline-none placeholder-slate-400"
                 />
               </div>
+            </div>
+
+            <!-- Grid for Dates and Guests -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
+              <!-- Dates Field -->
+              <div class="md:col-span-7 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 rounded-2xl p-3 flex items-center gap-3 shadow-xs cursor-pointer">
+                <Calendar class="w-6 h-6 text-slate-500 flex-shrink-0" :stroke-width="2" />
+                <div class="flex-1 min-w-0 grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">เช็คอิน</label>
+                    <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">19 ต.ค. 2026 (จันทร์)</div>
+                  </div>
+                  <div class="border-l border-slate-200 pl-2">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">เช็คเอ้าท์</label>
+                    <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">20 ต.ค. 2026 (อังคาร)</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Guests Field -->
+              <div class="md:col-span-5 bg-white hover:bg-slate-50 transition-colors border-2 border-slate-200 rounded-2xl p-3 flex items-center gap-3 shadow-xs cursor-pointer">
+                <Users class="w-6 h-6 text-slate-500 flex-shrink-0" :stroke-width="2" />
+                <div class="flex-1 min-w-0">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase block leading-none mb-1">ผู้เข้าพัก</label>
+                  <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                    {{ guestsCount }}
+                  </div>
+                </div>
+                <ChevronDown class="w-4 h-4 text-slate-400" />
+              </div>
+            </div>
+
+            <!-- Checkbox Filter Option -->
+            <div class="flex items-center gap-2 mb-2 text-xs sm:text-sm text-slate-600">
+              <input type="checkbox" id="homeOnly" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" />
+              <label for="homeOnly" class="cursor-pointer font-medium select-none">แสดงที่พักแบบบ้านหรือหลังและอพาร์ตเมนต์เท่านั้น</label>
+            </div>
+
+            <!-- Big Agoda Blue Search Button Floating at Bottom -->
+            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 z-20">
               <button
                 @click="doSearch"
                 type="button"
-                class="w-full sm:w-auto h-11 px-8 rounded-xl sm:rounded-full bg-coral-600 hover:bg-coral-700 text-white text-sm font-semibold transition-all shadow-md flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+                class="min-w-[220px] sm:min-w-[280px] h-12 px-8 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-lg sm:text-xl transition-all shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer border-2 border-white"
               >
-                <Search class="w-4 h-4 sm:hidden" />
-                <span>ค้นหาที่พัก</span>
+                <span>ค้นหา</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Section Container (Full Edge-to-Edge Bleed Layout across Page Width) -->
+      <main class="w-full px-4 sm:px-6 md:px-10 lg:px-14 xl:px-16 py-12 space-y-10 max-w-[1720px] mx-auto">
+
+        <!-- Filter Bar Section (Location & Amenities Filters) -->
+        <section class="w-full bg-white rounded-3xl p-5 sm:p-6 border border-line shadow-xs space-y-5">
+          <!-- 1. Location Filter Chips -->
+          <div>
+            <div class="flex items-center justify-between mb-2.5">
+              <h3 class="text-sm font-semibold text-ink flex items-center gap-1.5">
+                <MapPin class="w-4 h-4 text-blue-600" />
+                <span>เลือกดูตามจังหวัด / ทำเล</span>
+              </h3>
+            </div>
+
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none snap-x">
+              <button
+                v-for="loc in locations"
+                :key="loc"
+                @click="filterLocation = loc"
+                type="button"
+                :class="[
+                  'flex-shrink-0 h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all snap-start cursor-pointer border',
+                  filterLocation === loc
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-semibold'
+                    : 'bg-slate-50 text-ink-muted border-line hover:border-blue-200 hover:bg-blue-50/50'
+                ]"
+              >
+                {{ loc === 'all' ? '📍 ทั้งหมด' : `📍 ${loc}` }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-slate-100" />
+
+          <!-- 2. Amenity Filters Section -->
+          <div>
+            <div class="flex items-center justify-between mb-2.5">
+              <h3 class="text-sm font-semibold text-ink flex items-center gap-1.5">
+                <Sparkles class="w-4 h-4 text-blue-600" />
+                <span>สิ่งอำนวยความสะดวก (Amenity Filters)</span>
+              </h3>
+              
+              <!-- Clear Filters Button -->
+              <button
+                v-if="selectedAmenities.length > 0 || filterLocation !== 'all' || searchQuery"
+                @click="clearAllFilters"
+                type="button"
+                class="text-xs font-medium text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <RefreshCw class="w-3.5 h-3.5" />
+                <span>ล้างตัวกรองทั้งหมด</span>
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                v-for="item in availableAmenities"
+                :key="item.id"
+                @click="toggleAmenity(item.keyword)"
+                type="button"
+                :class="[
+                  'h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border cursor-pointer select-none',
+                  selectedAmenities.includes(item.keyword)
+                    ? 'bg-blue-50 text-blue-700 border-blue-500 shadow-2xs font-semibold'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                ]"
+              >
+                <component :is="item.icon" class="w-4 h-4 text-blue-600" />
+                <span>{{ item.label }}</span>
+                <Check v-if="selectedAmenities.includes(item.keyword)" class="w-3.5 h-3.5 text-blue-600 font-bold ml-0.5" :stroke-width="3" />
               </button>
             </div>
           </div>
         </section>
 
-        <!-- Location Filter Chips Section -->
-        <section class="w-full">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-ink-muted flex items-center gap-1.5">
-              <MapPin class="w-4 h-4 text-indigo-600" />
-              <span>เลือกดูตามจังหวัด/ทำเล</span>
-            </h3>
-          </div>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x">
-            <button
-              v-for="loc in locations"
-              :key="loc"
-              @click="filterLocation = loc"
-              type="button"
-              :class="[
-                'flex-shrink-0 h-9 px-4 rounded-full text-xs sm:text-sm font-medium transition-all snap-start cursor-pointer border',
-                filterLocation === loc
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs font-semibold'
-                  : 'bg-white text-ink-muted border-line hover:border-indigo-200 hover:bg-indigo-50/50'
-              ]"
-            >
-              {{ loc === 'all' ? '📍 ทั้งหมด' : `📍 ${loc}` }}
-            </button>
-          </div>
-        </section>
-
-        <!-- Featured Deals (Bento Layout 8+4) -->
+        <!-- Featured Deals (Bento Grid 8+4 cols on full screen width) -->
         <section v-if="featuredHotel" class="w-full space-y-4">
           <div class="flex items-baseline justify-between">
             <h2 class="font-display font-semibold text-xl sm:text-2xl text-ink flex items-center gap-2">
@@ -205,7 +343,7 @@ function doSearch() {
           </div>
         </section>
 
-        <!-- Recommended Hotel Grid Section -->
+        <!-- Recommended Hotel Grid Section (Ultra-wide responsive 1-5 cols) -->
         <section class="w-full space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="font-display font-semibold text-xl sm:text-2xl text-ink">
@@ -216,8 +354,8 @@ function doSearch() {
             </span>
           </div>
 
-          <!-- Hotel Cards Grid: 1 col mobile, 2 col tablet, 4 col desktop -->
-          <div v-if="filteredHotels.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <!-- Hotel Cards Grid: 1 col mobile, 2 col tablet, 4 col desktop, 5 col ultra-wide -->
+          <div v-if="filteredHotels.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
             <HotelCard v-for="hotel in filteredHotels" :key="hotel.id" :hotel="hotel" />
           </div>
 
@@ -227,13 +365,14 @@ function doSearch() {
               <Search class="w-8 h-8" :stroke-width="1.5" />
             </div>
             <p class="text-lg font-semibold text-ink mb-1">ไม่พบที่พักตรงกับเงื่อนไขการค้นหา</p>
-            <p class="text-sm text-ink-muted mb-5 max-w-sm">ลองค้นหาด้วยชื่อจังหวัดอื่น หรือกดดูที่พักทั้งหมด</p>
+            <p class="text-sm text-ink-muted mb-5 max-w-sm">ลองเปลี่ยนเงื่อนไขค้นหา หรือกดล้างตัวกรองเพื่อดูที่พักทั้งหมด</p>
             <button
-              @click="searchQuery = ''; filterLocation = 'all'"
+              @click="clearAllFilters"
               type="button"
-              class="h-10 px-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors shadow-xs cursor-pointer"
+              class="h-10 px-6 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors shadow-xs cursor-pointer flex items-center gap-2"
             >
-              แสดงที่พักทั้งหมด
+              <RefreshCw class="w-4 h-4" />
+              <span>แสดงที่พักทั้งหมด</span>
             </button>
           </div>
         </section>
@@ -245,4 +384,5 @@ function doSearch() {
     <Footer />
   </div>
 </template>
+
 
