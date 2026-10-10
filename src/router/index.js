@@ -71,6 +71,7 @@ router.beforeEach((to, from, next) => {
     return next(`/auth?redirect=${encodeURIComponent(to.fullPath)}&reason=login_required`)
   }
   if (access !== role) {
+    if (role === 'admin' && to.path === '/manager/messages') return next()
     const home = role === 'manager' ? '/manager' : role === 'admin' ? '/admin' : '/home'
     return next(home)
   }

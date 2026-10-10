@@ -244,24 +244,31 @@ async function sendMsg() {
               </div>
             </div>
 
-            <!-- Messages Stream -->
-            <div ref="msgContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/30">
+            <!-- Messages Stream with background-message.png -->
+            <div
+              ref="msgContainer"
+              class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative bg-cover bg-center"
+              style="background-image: url('/docs/ui-specs/background-message.png');"
+            >
+              <!-- Soft Overlay for Contrast -->
+              <div class="absolute inset-0 bg-white/40 pointer-events-none" />
+
               <div
                 v-for="m in messages"
                 :key="m.id"
-                :class="['flex flex-col', m.sender === 'manager' ? 'items-end' : 'items-start']"
+                :class="['flex flex-col relative z-10', m.sender === 'manager' ? 'items-end' : 'items-start']"
               >
                 <div
                   :class="[
-                    'max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-2xs',
+                    'max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
                     m.sender === 'manager'
-                      ? 'bg-blue-600 text-white rounded-br-xs font-medium'
-                      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
+                      ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
+                      : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
                   ]"
                 >
                   {{ m.text }}
                 </div>
-                <span class="text-[10px] font-medium text-slate-400 mt-1 px-1 flex items-center gap-1">
+                <span class="text-[10px] font-medium text-slate-500 mt-1 px-2 py-0.5 rounded-full bg-white/80 backdrop-blur-xs flex items-center gap-1 shadow-2xs">
                   {{ formatMsgTime(m.sentAt) }}
                   <CheckCheck v-if="m.sender === 'manager'" class="w-3 h-3 text-blue-500" />
                 </span>

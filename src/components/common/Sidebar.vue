@@ -25,6 +25,7 @@ const links = computed(() => {
     return [
       { to: '/admin', label: 'แดชบอร์ดภาพรวม', icon: LayoutDashboard },
       { to: '/admin/approval', label: 'อนุมัติโรงแรม', icon: CheckSquare },
+      { to: '/manager/messages', label: 'ข้อความระบบ & แชท', icon: MessageCircle },
       { to: '/admin/settings', label: 'ตั้งค่าระบบ', icon: Settings },
     ]
   }
