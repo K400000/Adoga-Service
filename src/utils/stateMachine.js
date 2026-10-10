@@ -22,7 +22,7 @@ export const TRANSITIONS = {
   payment: {
     awaiting:  ['verifying'],
     verifying: ['success', 'failed'],
-    failed:    ['awaiting'],
+    failed:    ['awaiting', 'verifying'],
     success:   ['refunded'],
     refunded:  [],
   },

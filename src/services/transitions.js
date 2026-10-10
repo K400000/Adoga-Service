@@ -44,6 +44,9 @@ export function startPayment(bookingId) {
   const bookings = [...(db['adoga_bookings'] || [])]
   const idx = bookings.findIndex(b => b.id === bookingId)
   if (idx === -1) throw new Error('Booking not found')
+  if (bookings[idx].paymentStatus === 'failed') {
+    transition('payment', bookings[idx], 'awaiting')
+  }
   transition('payment', bookings[idx], 'verifying')
   saveBookings(bookings)
 }

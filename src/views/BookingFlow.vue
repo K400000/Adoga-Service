@@ -99,14 +99,19 @@ function doBook() {
 
 async function doPay() {
   payLoading.value = true
-  startPayment(booking.value.id)
-  refreshBooking()
-  await new Promise(r => setTimeout(r, 600))
-  finishPayment(booking.value.id, !simulateFail.value)
-  refreshBooking()
-  payLoading.value = false
-  showPayModal.value = false
-  if (!simulateFail.value) step.value = 'done'
+  try {
+    startPayment(booking.value.id)
+    refreshBooking()
+    await new Promise(r => setTimeout(r, 600))
+    finishPayment(booking.value.id, !simulateFail.value)
+    refreshBooking()
+    if (!simulateFail.value) step.value = 'done'
+  } catch (err) {
+    console.error('Payment error:', err)
+  } finally {
+    payLoading.value = false
+    showPayModal.value = false
+  }
 }
 
 function doRetry() { retryPayment(booking.value.id); refreshBooking() }
