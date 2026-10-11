@@ -17,7 +17,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import { RouterLink } from 'vue-router'
-import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search } from '@lucide/vue'
+import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search, BedDouble, Trash2 } from '@lucide/vue'
 
 const { session } = useSession()
 
@@ -118,9 +118,143 @@ function removeImageLink(index) {
   hotelForm.value.images.splice(index, 1)
 }
 
+const activeModalTab = ref('general') // 'general' | 'rooms'
+const isEditingRoom = ref(false)
+const editingRoomIndex = ref(-1)
+const roomForm = ref({
+  type: '',
+  price: 1500,
+  capacity: 2,
+  unitNumbers: ''
+})
+
+const totalUnitsCount = computed(() => {
+  if (!hotelForm.value?.rooms) return 0
+  return hotelForm.value.rooms.reduce((sum, r) => sum + (r.units?.length || 0), 0)
+})
+
+function openAddRoom() {
+  editingRoomIndex.value = -1
+  roomForm.value = {
+    type: '',
+    price: Number(hotelForm.value.pricePerNight) || 1500,
+    capacity: 2,
+    unitNumbers: '101, 102'
+  }
+  isEditingRoom.value = true
+}
+
+function openEditRoom(room, index) {
+  editingRoomIndex.value = index
+  roomForm.value = {
+    type: room.type,
+    price: room.price,
+    capacity: room.capacity,
+    unitNumbers: room.units ? room.units.map(u => u.no).join(', ') : ''
+  }
+  isEditingRoom.value = true
+}
+
+function saveRoomForm() {
+  if (!roomForm.value.type.trim()) {
+    showToast('กรุณาระบุชื่อประเภทห้องพัก', 'error')
+    return
+  }
+  if (roomForm.value.price <= 0) {
+    showToast('กรุณาระบุราคาห้องพักที่ถูกต้อง', 'error')
+    return
+  }
+
+  const rawUnits = (roomForm.value.unitNumbers || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+  
+  const unitNos = [...new Set(rawUnits)]
+  if (!unitNos.length) {
+    unitNos.push('101')
+  }
+
+  if (editingRoomIndex.value >= 0) {
+    const existingRoom = hotelForm.value.rooms[editingRoomIndex.value]
+    const existingUnitsMap = new Map((existingRoom.units || []).map(u => [u.no, u]))
+    
+    const updatedUnits = unitNos.map(no => {
+      if (existingUnitsMap.has(no)) {
+        return existingUnitsMap.get(no)
+      }
+      return { no, status: 'available', statusHistory: [] }
+    })
+
+    existingRoom.type = roomForm.value.type.trim()
+    existingRoom.price = Number(roomForm.value.price)
+    existingRoom.capacity = Number(roomForm.value.capacity)
+    existingRoom.units = updatedUnits
+    showToast('อัปเดตประเภทห้องพักแล้ว', 'success')
+  } else {
+    const newRoom = {
+      id: 'R' + Date.now(),
+      type: roomForm.value.type.trim(),
+      price: Number(roomForm.value.price),
+      capacity: Number(roomForm.value.capacity),
+      units: unitNos.map(no => ({ no, status: 'available', statusHistory: [] }))
+    }
+    if (!hotelForm.value.rooms) hotelForm.value.rooms = []
+    hotelForm.value.rooms.push(newRoom)
+    showToast('เพิ่มประเภทห้องพักเรียบร้อย', 'success')
+  }
+  isEditingRoom.value = false
+}
+
+function removeRoomType(index) {
+  if (hotelForm.value.rooms.length <= 1) {
+    showToast('โรงแรมต้องมีประเภทห้องพักอย่างน้อย 1 ประเภท', 'error')
+    return
+  }
+  if (confirm('ยืนยันที่จะลบประเภทห้องพักนี้หรือไม่?')) {
+    hotelForm.value.rooms.splice(index, 1)
+    showToast('ลบประเภทห้องพักเรียบร้อย', 'info')
+  }
+}
+
+function toggleUnitStatus(room, unit) {
+  if (unit.status === 'booked') {
+    showToast('ห้องพักนี้มีผู้จองอยู่ ไม่สามารถเปลี่ยนสถานะได้', 'info')
+    return
+  }
+  unit.status = unit.status === 'available' ? 'maintenance' : 'available'
+}
+
+function addQuickUnit(room) {
+  const nextNo = prompt('ระบุหมายเลขห้องใหม่ (เช่น 103):')
+  if (!nextNo || !nextNo.trim()) return
+  const cleanNo = nextNo.trim()
+  if (room.units.some(u => u.no === cleanNo)) {
+    showToast('หมายเลขห้องนี้มีอยู่แล้ว', 'error')
+    return
+  }
+  room.units.push({ no: cleanNo, status: 'available', statusHistory: [] })
+  showToast(`เพิ่มห้อง #${cleanNo} เรียบร้อย`, 'success')
+}
+
+function removeUnit(room, unitIndex) {
+  if (room.units.length <= 1) {
+    showToast('ประเภทห้องต้องมีห้องพักอย่างน้อย 1 ห้อง', 'error')
+    return
+  }
+  const u = room.units[unitIndex]
+  if (u.status === 'booked') {
+    showToast('ห้องพักนี้มีผู้จองอยู่ ไม่สามารถลบได้', 'error')
+    return
+  }
+  room.units.splice(unitIndex, 1)
+}
+
 function openAddHotel() {
   editingHotelId.value = null
   newImageUrl.value = ''
+  activeModalTab.value = 'general'
+  isEditingRoom.value = false
   hotelForm.value = {
     name: '',
     location: 'บางแสน, ชลบุรี',
@@ -128,7 +262,19 @@ function openAddHotel() {
     pricePerNight: 1200,
     discount: 0,
     images: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
-    amenities: ['WiFi ฟรี', 'ที่จอดรถ', 'อาหารเช้า']
+    amenities: ['WiFi ฟรี', 'ที่จอดรถ', 'อาหารเช้า'],
+    rooms: [
+      {
+        id: 'R' + Date.now(),
+        type: 'Standard Room',
+        price: 1200,
+        capacity: 2,
+        units: [
+          { no: '101', status: 'available' },
+          { no: '102', status: 'available' }
+        ]
+      }
+    ]
   }
   showHotelModal.value = true
 }
@@ -141,6 +287,8 @@ function openEditHotel(hotel) {
   }
   editingHotelId.value = hotel.id
   newImageUrl.value = ''
+  activeModalTab.value = 'general'
+  isEditingRoom.value = false
   hotelForm.value = {
     name: hotel.name,
     location: hotel.location,
@@ -148,7 +296,21 @@ function openEditHotel(hotel) {
     pricePerNight: hotel.pricePerNight,
     discount: hotel.discount || 0,
     images: hotel.images && hotel.images.length ? [...hotel.images] : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
-    amenities: [...(hotel.amenities || [])]
+    amenities: [...(hotel.amenities || [])],
+    rooms: hotel.rooms && hotel.rooms.length
+      ? JSON.parse(JSON.stringify(hotel.rooms))
+      : [
+          {
+            id: 'R' + Date.now(),
+            type: 'Standard Room',
+            price: hotel.pricePerNight || 1200,
+            capacity: 2,
+            units: [
+              { no: '101', status: 'available' },
+              { no: '102', status: 'available' }
+            ]
+          }
+        ]
   }
   showHotelModal.value = true
 }
@@ -180,15 +342,27 @@ function saveHotelForm() {
     pricePerNight: Number(hotelForm.value.pricePerNight),
     discount: Number(hotelForm.value.discount),
     amenities: hotelForm.value.amenities,
-    images: hotelForm.value.images.length ? hotelForm.value.images : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80']
+    images: hotelForm.value.images.length ? hotelForm.value.images : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
+    rooms: hotelForm.value.rooms && hotelForm.value.rooms.length ? hotelForm.value.rooms : [
+      {
+        id: 'R' + Date.now(),
+        type: 'Standard Room',
+        price: Number(hotelForm.value.pricePerNight) || 1200,
+        capacity: 2,
+        units: [
+          { no: '101', status: 'available' },
+          { no: '102', status: 'available' }
+        ]
+      }
+    ]
   }
 
   if (editingHotelId.value) {
     updateHotel(editingHotelId.value, payload)
-    showToast('ส่งการแก้ไขข้อมูลโรงแรมแล้ว (สถานะ: รออนุมัติ)', 'success')
+    showToast('ส่งการแก้ไขข้อมูลโรงแรมและห้องพักแล้ว (สถานะ: รออนุมัติ)', 'success')
   } else {
     createHotel(payload)
-    showToast('เพิ่มโรงแรมเรียบร้อยแล้ว (สถานะ: รออนุมัติ)', 'success')
+    showToast('เพิ่มโรงแรมและห้องพักเรียบร้อยแล้ว (สถานะ: รออนุมัติ)', 'success')
   }
   showHotelModal.value = false
 }
@@ -523,87 +697,380 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
       </div>
     </BaseModal>
 
-    <!-- Hotel Add/Edit Modal -->
-    <BaseModal :open="showHotelModal" @close="showHotelModal = false" :title="editingHotelId ? 'แก้ไขข้อมูลโรงแรม' : 'เพิ่มโรงแรมใหม่'">
-      <form @submit.prevent="saveHotelForm" class="flex flex-col gap-4">
-        <BaseInput label="ชื่อโรงแรม *" v-model="hotelForm.name" placeholder="เช่น แกรนด์ บีช รีสอร์ท บางแสน" required />
-        <BaseInput label="ทำเลที่ตั้ง *" v-model="hotelForm.location" placeholder="เช่น หาดบางแสน, ชลบุรี" required />
-        <div class="grid grid-cols-2 gap-3">
-          <BaseInput label="ราคาเริ่มต้น/คืน (฿) *" type="number" v-model="hotelForm.pricePerNight" placeholder="1500" required />
-          <BaseInput label="ส่วนลด (%)" type="number" v-model="hotelForm.discount" placeholder="0" />
+    <!-- Hotel Add/Edit Modal with Tab Navigation & Room Management -->
+    <BaseModal
+      :open="showHotelModal"
+      @close="showHotelModal = false"
+      :title="editingHotelId ? 'แก้ไขข้อมูลโรงแรม' : 'เพิ่มโรงแรมใหม่'"
+      size="3xl"
+    >
+      <!-- Modal Tab Navigation Bar -->
+      <div class="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6 flex-shrink-0">
+        <button
+          type="button"
+          @click="activeModalTab = 'general'"
+          :class="[
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+            activeModalTab === 'general'
+              ? 'bg-white text-indigo-600 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          ]"
+        >
+          <Hotel class="w-4 h-4" />
+          <span>ข้อมูลโรงแรมทั่วไป</span>
+        </button>
+
+        <button
+          type="button"
+          @click="activeModalTab = 'rooms'"
+          :class="[
+            'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+            activeModalTab === 'rooms'
+              ? 'bg-white text-indigo-600 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          ]"
+        >
+          <BedDouble class="w-4 h-4" />
+          <span>จัดการห้องพัก & จำนวนห้อง</span>
+          <span
+            :class="[
+              'px-2 py-0.5 rounded-full text-xs font-bold',
+              activeModalTab === 'rooms' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200 text-slate-700'
+            ]"
+          >
+            {{ totalUnitsCount }} ห้อง
+          </span>
+        </button>
+      </div>
+
+      <form @submit.prevent="saveHotelForm">
+        <!-- TAB 1: General Info -->
+        <div v-show="activeModalTab === 'general'" class="flex flex-col gap-4">
+          <BaseInput label="ชื่อโรงแรม *" v-model="hotelForm.name" placeholder="เช่น แกรนด์ บีช รีสอร์ท บางแสน" required />
+          <BaseInput label="ทำเลที่ตั้ง *" v-model="hotelForm.location" placeholder="เช่น หาดบางแสน, ชลบุรี" required />
+          <div class="grid grid-cols-2 gap-3">
+            <BaseInput label="ราคาเริ่มต้น/คืน (฿) *" type="number" v-model="hotelForm.pricePerNight" placeholder="1500" required />
+            <BaseInput label="ส่วนลด (%)" type="number" v-model="hotelForm.discount" placeholder="0" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-ink mb-1.5 flex items-center justify-between">
+              <span>รูปภาพโรงแรม (URL Link)</span>
+              <span class="text-xs text-ink-muted">จำนวน {{ hotelForm.images.length }} รูป</span>
+            </label>
+            
+            <div class="flex gap-2 mb-3">
+              <input
+                v-model="newImageUrl"
+                @keydown.enter.prevent="addImageLink"
+                placeholder="วาง URL รูปภาพ (เช่น https://images.unsplash.com/...)"
+                class="flex-1 h-11 px-4 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600 font-mono text-xs"
+              />
+              <BaseButton type="button" @click="addImageLink" variant="secondary" size="sm" class="flex-shrink-0">
+                <Plus class="w-4 h-4 mr-1" /> เพิ่มรูป
+              </BaseButton>
+            </div>
+
+            <!-- Preview Grid -->
+            <div v-if="hotelForm.images.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 border border-line">
+              <div
+                v-for="(img, idx) in hotelForm.images"
+                :key="idx"
+                class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-xs"
+              >
+                <img
+                  :src="img"
+                  alt="Preview"
+                  class="w-full h-full object-cover"
+                  @error="$event.target.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'"
+                />
+                <div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button
+                    type="button"
+                    @click="removeImageLink(idx)"
+                    class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    ✕ ลบ
+                  </button>
+                </div>
+                <span class="absolute bottom-1 left-1 bg-slate-900/70 text-white text-[9px] px-1 py-0.5 rounded font-mono">
+                  #{{ idx + 1 }}
+                </span>
+              </div>
+            </div>
+            <p v-else class="text-xs text-rose-500 font-medium">ยังไม่มีรูปภาพ กรุณาใส่อย่างน้อย 1 ลิงก์</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-ink mb-1.5">สิ่งอำนวยความสะดวก</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label
+                v-for="amenity in ALL_AMENITIES"
+                :key="amenity"
+                class="flex items-center gap-2 text-xs p-2 rounded-lg border border-line cursor-pointer hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  :checked="hotelForm.amenities.includes(amenity)"
+                  @change="toggleAmenity(amenity)"
+                  class="rounded text-indigo-600"
+                />
+                <span>{{ amenity }}</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-ink mb-1.5">คำอธิบาย</label>
+            <textarea v-model="hotelForm.description" rows="3" placeholder="รายละเอียดที่พัก..." class="w-full px-4 py-2.5 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600 resize-none" />
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-ink mb-1.5 flex items-center justify-between">
-            <span>รูปภาพโรงแรม (URL Link)</span>
-            <span class="text-xs text-ink-muted">จำนวน {{ hotelForm.images.length }} รูป</span>
-          </label>
-          
-          <div class="flex gap-2 mb-3">
-            <input
-              v-model="newImageUrl"
-              @keydown.enter.prevent="addImageLink"
-              placeholder="วาง URL รูปภาพ (เช่น https://images.unsplash.com/...)"
-              class="flex-1 h-11 px-4 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600 font-mono text-xs"
-            />
-            <BaseButton type="button" @click="addImageLink" variant="secondary" size="sm" class="flex-shrink-0">
-              <Plus class="w-4 h-4 mr-1" /> เพิ่มรูป
+
+        <!-- TAB 2: Room Management -->
+        <div v-show="activeModalTab === 'rooms'" class="flex flex-col gap-5">
+          <!-- Room Stats & Add Room Type Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+            <div>
+              <h4 class="font-semibold text-sm text-indigo-950 flex items-center gap-1.5">
+                <BedDouble class="w-4 h-4 text-indigo-600" />
+                <span>ภาพรวมห้องพักของโรงแรม</span>
+              </h4>
+              <p class="text-xs text-indigo-700/80 mt-0.5">
+                มีทั้งหมด <strong>{{ hotelForm.rooms?.length || 0 }}</strong> ประเภทห้องพัก รวม <strong>{{ totalUnitsCount }}</strong> ห้อง
+              </p>
+            </div>
+            <BaseButton
+              v-if="!isEditingRoom"
+              type="button"
+              @click="openAddRoom"
+              variant="secondary"
+              size="sm"
+              class="self-start sm:self-auto shadow-2xs"
+            >
+              <Plus class="w-4 h-4 mr-1" /> เพิ่มประเภทห้องพัก
             </BaseButton>
           </div>
 
-          <!-- Preview Grid -->
-          <div v-if="hotelForm.images.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 border border-line">
-            <div
-              v-for="(img, idx) in hotelForm.images"
-              :key="idx"
-              class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-xs"
-            >
-              <img
-                :src="img"
-                alt="Preview"
-                class="w-full h-full object-cover"
-                @error="$event.target.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'"
-              />
-              <div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button
-                  type="button"
-                  @click="removeImageLink(idx)"
-                  class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-colors cursor-pointer"
-                >
-                  ✕ ลบ
-                </button>
+          <!-- Inline Add/Edit Room Type Form -->
+          <div v-if="isEditingRoom" class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-line shadow-xs flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-line pb-2.5">
+              <h5 class="font-semibold text-sm text-ink flex items-center gap-2">
+                <Edit3 class="w-4 h-4 text-indigo-600" />
+                <span>{{ editingRoomIndex >= 0 ? 'แก้ไขประเภทห้องพัก' : 'เพิ่มประเภทห้องพักใหม่' }}</span>
+              </h5>
+              <button
+                type="button"
+                @click="isEditingRoom = false"
+                class="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                ✕ ยกเลิก
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-ink mb-1">ชื่อประเภทห้องพัก *</label>
+                <input
+                  v-model="roomForm.type"
+                  type="text"
+                  placeholder="เช่น Deluxe Sea View"
+                  class="w-full h-10 px-3 rounded-xl border border-line bg-white text-sm text-ink focus:outline-none focus:border-indigo-600"
+                />
               </div>
-              <span class="absolute bottom-1 left-1 bg-slate-900/70 text-white text-[9px] px-1 py-0.5 rounded font-mono">
-                #{{ idx + 1 }}
-              </span>
+              <div>
+                <label class="block text-xs font-semibold text-ink mb-1">ราคาต่อคืน (฿) *</label>
+                <input
+                  v-model.number="roomForm.price"
+                  type="number"
+                  placeholder="1500"
+                  class="w-full h-10 px-3 rounded-xl border border-line bg-white text-sm text-ink focus:outline-none focus:border-indigo-600"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-ink mb-1">ความจุผู้เข้าพัก (ท่าน) *</label>
+                <input
+                  v-model.number="roomForm.capacity"
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="2"
+                  class="w-full h-10 px-3 rounded-xl border border-line bg-white text-sm text-ink focus:outline-none focus:border-indigo-600"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-ink mb-1">
+                หมายเลขห้องพัก (คั่นด้วยเครื่องหมายจุลภาค , เช่น 101, 102, 103)
+              </label>
+              <input
+                v-model="roomForm.unitNumbers"
+                type="text"
+                placeholder="เช่น 101, 102, 103, 104"
+                class="w-full h-10 px-3 rounded-xl border border-line bg-white text-sm text-ink font-mono focus:outline-none focus:border-indigo-600"
+              />
+              <p class="text-[11px] text-ink-muted mt-1">
+                ระบบจะสร้างห้องตามหมายเลขที่ระบุ สามารถเพิ่มหรือลดหมายเลขห้องได้
+              </p>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
+              <BaseButton type="button" @click="isEditingRoom = false" variant="ghost" size="sm">ยกเลิก</BaseButton>
+              <BaseButton type="button" @click="saveRoomForm" variant="primary" size="sm">
+                {{ editingRoomIndex >= 0 ? 'บันทึกการแก้ไขห้อง' : 'บันทึกประเภทห้องพัก' }}
+              </BaseButton>
             </div>
           </div>
-          <p v-else class="text-xs text-rose-500 font-medium">ยังไม่มีรูปภาพ กรุณาใส่อย่างน้อย 1 ลิงก์</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-ink mb-1.5">สิ่งอำนวยความสะดวก</label>
-          <div class="grid grid-cols-2 gap-2">
-            <label
-              v-for="amenity in ALL_AMENITIES"
-              :key="amenity"
-              class="flex items-center gap-2 text-xs p-2 rounded-lg border border-line cursor-pointer hover:bg-slate-50"
-            >
-              <input
-                type="checkbox"
-                :checked="hotelForm.amenities.includes(amenity)"
-                @change="toggleAmenity(amenity)"
-                class="rounded text-indigo-600"
-              />
-              <span>{{ amenity }}</span>
-            </label>
+
+          <!-- Room Types Table -->
+          <div class="rounded-2xl border border-line overflow-hidden shadow-2xs">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-slate-50 border-b border-line text-xs font-semibold text-ink-muted">
+                  <tr>
+                    <th class="py-3 px-4">ประเภทห้องพัก</th>
+                    <th class="py-3 px-4">ราคา/คืน</th>
+                    <th class="py-3 px-4">ความจุ</th>
+                    <th class="py-3 px-4">หมายเลขห้อง (Units) & สถานะ</th>
+                    <th class="py-3 px-4 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                  <tr v-if="!hotelForm.rooms?.length">
+                    <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
+                      ยังไม่มีประเภทห้องพัก กรุณากดปุ่ม "เพิ่มประเภทห้องพัก" ด้านบน
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="(room, rIdx) in hotelForm.rooms"
+                    :key="room.id || rIdx"
+                    class="hover:bg-slate-50/70 transition-colors"
+                  >
+                    <!-- Room Type Name -->
+                    <td class="py-3.5 px-4 font-semibold text-ink">
+                      <div class="flex items-center gap-2">
+                        <BedDouble class="w-4 h-4 text-indigo-500 shrink-0" />
+                        <div>
+                          <p class="leading-tight">{{ room.type }}</p>
+                          <p class="text-[11px] text-slate-400 font-normal">รหัส: {{ room.id }}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Price -->
+                    <td class="py-3.5 px-4 font-mono font-bold text-indigo-600 whitespace-nowrap">
+                      {{ formatPrice(room.price) }}
+                    </td>
+
+                    <!-- Capacity -->
+                    <td class="py-3.5 px-4 text-xs text-ink-muted whitespace-nowrap">
+                      {{ room.capacity }} ท่าน
+                    </td>
+
+                    <!-- Units & Statuses -->
+                    <td class="py-3.5 px-4">
+                      <div class="flex flex-wrap items-center gap-1.5 max-w-md">
+                        <span
+                          v-for="(u, uIdx) in room.units"
+                          :key="u.no"
+                          :class="[
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-medium border transition-colors select-none',
+                            u.status === 'available'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : u.status === 'booked'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          ]"
+                          :title="u.status === 'available' ? 'คลิกเพื่อสลับเป็นปิดปรับปรุง' : u.status === 'maintenance' ? 'คลิกเพื่อสลับเป็นพร้อมใช้งาน' : 'ติดจอง'"
+                        >
+                          <span
+                            @click="toggleUnitStatus(room, u)"
+                            class="cursor-pointer hover:underline"
+                          >
+                            #{{ u.no }}
+                          </span>
+                          <span class="text-[9px] font-sans">
+                            {{ u.status === 'available' ? 'ว่าง' : u.status === 'booked' ? 'ติดจอง' : 'ซ่อม' }}
+                          </span>
+                          <button
+                            v-if="u.status !== 'booked'"
+                            type="button"
+                            @click.stop="removeUnit(room, uIdx)"
+                            class="ml-0.5 text-slate-400 hover:text-rose-600 font-bold text-[10px] cursor-pointer"
+                            title="ลบห้องนี้"
+                          >
+                            ✕
+                          </button>
+                        </span>
+
+                        <!-- Quick Add Unit Button -->
+                        <button
+                          type="button"
+                          @click="addQuickUnit(room)"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition-colors cursor-pointer"
+                          title="เพิ่มหมายเลขห้องในประเภทนี้"
+                        >
+                          <Plus class="w-3 h-3" /> เพิ่มห้อง
+                        </button>
+                      </div>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                      <div class="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          @click="openEditRoom(room, rIdx)"
+                          class="p-1.5 rounded-lg border border-line bg-white text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                          title="แก้ไขรายละเอียดประเภทห้อง"
+                        >
+                          <Edit3 class="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          @click="removeRoomType(rIdx)"
+                          class="p-1.5 rounded-lg border border-line bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="ลบประเภทห้องพักนี้"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-ink mb-1.5">คำอธิบาย</label>
-          <textarea v-model="hotelForm.description" rows="3" placeholder="รายละเอียดที่พัก..." class="w-full px-4 py-2.5 rounded-xl border border-line text-sm text-ink focus:outline-none focus:border-indigo-600 resize-none" />
-        </div>
-        <div class="flex gap-3 justify-end mt-2">
-          <BaseButton type="button" @click="showHotelModal = false" variant="ghost" size="md">ยกเลิก</BaseButton>
-          <BaseButton type="submit" variant="secondary" size="md">บันทึกและส่งตรวจสอบ</BaseButton>
+
+        <!-- Sticky Footer Buttons with Tab Navigation and Save -->
+        <div class="flex items-center justify-between pt-4 border-t border-line mt-6 sticky bottom-0 bg-white z-10 pb-1">
+          <BaseButton type="button" @click="showHotelModal = false" variant="ghost" size="md">
+            ยกเลิก
+          </BaseButton>
+          
+          <div class="flex items-center gap-2">
+            <BaseButton
+              v-if="activeModalTab === 'general'"
+              type="button"
+              @click="activeModalTab = 'rooms'"
+              variant="outline"
+              size="md"
+            >
+              จัดการห้องพักต่อ →
+            </BaseButton>
+
+            <BaseButton
+              v-if="activeModalTab === 'rooms'"
+              type="button"
+              @click="activeModalTab = 'general'"
+              variant="outline"
+              size="md"
+            >
+              ← ข้อมูลโรงแรม
+            </BaseButton>
+
+            <BaseButton type="submit" variant="secondary" size="md" class="shadow-2xs">
+              บันทึกและส่งตรวจสอบ
+            </BaseButton>
+          </div>
         </div>
       </form>
     </BaseModal>

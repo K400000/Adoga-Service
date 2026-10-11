@@ -1,6 +1,6 @@
 <script setup>
 // src/views/AdminPermissions.vue — การกำหนดสิทธิ์เข้าใช้งานเฉพาะผู้จัดการโรงแรม (Manager Only)
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { db } from '../stores/db.js'
 import { toggleUserAccess, register } from '../services/authService.js'
 import { createHotel } from '../services/transitions.js'
@@ -11,11 +11,16 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import { 
-  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search, Lock, Edit2
+  Plus, UserCheck, UserX, Hotel, Mail, Calendar, CheckCircle2, XCircle, Search, Lock, Edit2,
+  ChevronLeft, ChevronRight
 } from '@lucide/vue'
 
 const searchQuery = ref('')
 const filterStatus = ref('all') // all | active | disabled
+
+// Pagination state (10 accounts per page)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 // Add Manager Modal state
 const showAddModal = ref(false)
@@ -48,11 +53,13 @@ const managerAccounts = computed(() => {
   return managersOnly.map(u => {
     // Find hotel managed by this user
     const userHotels = hotels.value.filter(h => h.managerId === u.id)
-    const hotelName = userHotels.map(h => h.name).join(', ') || 'ยังไม่ได้กำหนดโรงแรม'
+    const hasHotel = userHotels.length > 0
+    const hotelName = hasHotel ? userHotels.map(h => h.name).join(', ') : 'ยังไม่มีโรงแรม (รอผู้จัดการสร้าง)'
     const nickname = u.nickname || u.firstName || u.email.split('@')[0]
     
     return {
       ...u,
+      hasHotel,
       hotelName,
       nickname,
       isEnabled: !u.disabled && u.status !== 'disabled'
@@ -73,6 +80,17 @@ const filteredAccounts = computed(() => {
     if (filterStatus.value === 'disabled') return matchesQuery && !acc.isEnabled
     return matchesQuery
   })
+})
+
+watch([searchQuery, filterStatus], () => {
+  currentPage.value = 1
+})
+
+const totalPages = computed(() => Math.ceil(filteredAccounts.value.length / pageSize.value) || 1)
+
+const paginatedAccounts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredAccounts.value.slice(start, start + pageSize.value)
 })
 
 // Stats
@@ -97,8 +115,8 @@ function handleToggle(account) {
 
 async function handleAddManager() {
   modalError.value = ''
-  if (!newGmail.value || !newNickname.value || !newHotelName.value) {
-    modalError.value = 'กรุณากรอก Gmail, ชื่อเล่น/Username และชื่อโรงแรมให้ครบถ้วน'
+  if (!newGmail.value || !newNickname.value) {
+    modalError.value = 'กรุณากรอก Gmail และชื่อเล่น/Username ให้ครบถ้วน'
     return
   }
   modalLoading.value = true
@@ -123,20 +141,9 @@ async function handleAddManager() {
     return
   }
 
-  // Create associated hotel for this manager
-  if (newHotelName.value.trim()) {
-    createHotel({
-      managerId: res.user.id,
-      name: newHotelName.value.trim(),
-      location: 'ชลบุรี',
-      description: 'โรงแรมที่พักพาร์ทเนอร์ Adoga Service',
-      pricePerNight: 1800,
-    })
-  }
-
   modalLoading.value = false
   showAddModal.value = false
-  showToast(`เพิ่มบัญชีผู้จัดการและสร้างโรงแรม ${newHotelName.value} เรียบร้อยแล้ว`, 'success')
+  showToast(`เพิ่มบัญชีผู้จัดการเรียบร้อยแล้ว (ผู้จัดการจะสามารถสร้างโพสต์โรงแรมเองได้ในภายหลัง)`, 'success')
 
   // Reset Form
   newGmail.value = ''
@@ -149,7 +156,7 @@ async function handleAddManager() {
 function openEditModal(account) {
   editingAccount.value = account
   editGmail.value = account.email || ''
-  editHotelName.value = account.hotelName || ''
+  editHotelName.value = account.hasHotel ? (account.hotelName || '') : ''
   editNickname.value = account.nickname || ''
   editModalError.value = ''
   showEditModal.value = true
@@ -157,8 +164,8 @@ function openEditModal(account) {
 
 async function handleUpdateManager() {
   editModalError.value = ''
-  if (!editGmail.value.trim() || !editHotelName.value.trim() || !editNickname.value.trim()) {
-    editModalError.value = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง'
+  if (!editGmail.value.trim() || !editNickname.value.trim()) {
+    editModalError.value = 'กรุณากรอก Gmail และชื่อเล่นให้ครบถ้วน'
     return
   }
 
@@ -175,12 +182,11 @@ async function handleUpdateManager() {
     userObj.firstName = editNickname.value.trim()
   }
 
-  // 2. Update hotel record in db['adoga_hotels']
+  // 2. Update hotel record in db['adoga_hotels'] if hotel name is provided
   const hotelObj = db['adoga_hotels']?.find(h => h.managerId === targetUserId)
-  if (hotelObj) {
+  if (hotelObj && editHotelName.value.trim()) {
     hotelObj.name = editHotelName.value.trim()
-  } else {
-    // Create hotel if not present
+  } else if (!hotelObj && editHotelName.value.trim()) {
     createHotel({
       managerId: targetUserId,
       name: editHotelName.value.trim(),
@@ -305,7 +311,7 @@ async function handleUpdateManager() {
             </thead>
             <tbody class="divide-y divide-line text-sm">
               <tr 
-                v-for="acc in filteredAccounts" 
+                v-for="acc in paginatedAccounts" 
                 :key="acc.id"
                 class="hover:bg-slate-50/60 transition-colors"
               >
@@ -318,10 +324,13 @@ async function handleUpdateManager() {
                 </td>
 
                 <!-- Hotel Name -->
-                <td class="py-4 px-6 font-semibold text-indigo-950">
+                <td class="py-4 px-6 text-indigo-950">
                   <div class="flex items-center gap-2">
                     <Hotel class="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span>{{ acc.hotelName }}</span>
+                    <span v-if="acc.hasHotel" class="font-semibold">{{ acc.hotelName }}</span>
+                    <span v-else class="text-xs font-medium px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
+                      {{ acc.hotelName }}
+                    </span>
                   </div>
                 </td>
 
@@ -388,6 +397,51 @@ async function handleUpdateManager() {
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Footer (Appears ONLY if > 10 gmail accounts) -->
+        <div
+          v-if="filteredAccounts.length > pageSize"
+          class="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 bg-slate-50/60 border-t border-line"
+        >
+          <p class="text-xs text-ink-muted">
+            แสดง <strong>{{ ((currentPage - 1) * pageSize) + 1 }}</strong> - <strong>{{ Math.min(currentPage * pageSize, filteredAccounts.length) }}</strong> จากทั้งหมด <strong>{{ filteredAccounts.length }}</strong> บัญชีผู้จัดการ
+          </p>
+          <div class="flex items-center gap-1.5">
+            <button
+              @click="currentPage--"
+              :disabled="currentPage === 1"
+              class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              aria-label="หน้าก่อนหน้า"
+              title="หน้าก่อนหน้า"
+            >
+              <ChevronLeft class="w-4 h-4" />
+            </button>
+
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              @click="currentPage = p"
+              :class="[
+                'px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
+                currentPage === p
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-white border border-line text-slate-600 hover:bg-slate-100'
+              ]"
+            >
+              {{ p }}
+            </button>
+
+            <button
+              @click="currentPage++"
+              :disabled="currentPage >= totalPages"
+              class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              aria-label="หน้าถัดไป"
+              title="หน้าถัดไป"
+            >
+              <ChevronRight class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -415,17 +469,9 @@ async function handleUpdateManager() {
           required
         />
 
-        <!-- ชื่อโรงแรม -->
+        <!-- ชื่อเล่น / Username -->
         <BaseInput
-          label="ชื่อโรงแรม"
-          v-model="newHotelName"
-          placeholder="เช่น Chonburi Sea View Resort"
-          required
-        />
-
-        <!-- ชื่อเล่น -->
-        <BaseInput
-          label="ชื่อเล่น"
+          label="ชื่อเล่น / Username"
           v-model="newNickname"
           placeholder="เช่น Chai, Suda"
           required
@@ -476,10 +522,9 @@ async function handleUpdateManager() {
 
         <!-- ชื่อโรงแรม -->
         <BaseInput
-          label="ชื่อโรงแรม"
+          label="ชื่อโรงแรม (เว้นว่างไว้ได้หากรอผู้จัดการสร้างเอง)"
           v-model="editHotelName"
           placeholder="เช่น Chonburi Sea View Resort"
-          required
         />
 
         <!-- ชื่อเล่น -->

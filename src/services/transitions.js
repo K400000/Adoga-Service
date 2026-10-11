@@ -170,6 +170,20 @@ export function approveHotel(hotelId) {
   const idx = hotels.findIndex(h => h.id === hotelId)
   if (idx === -1) throw new Error('Hotel not found')
   transition('hotel', hotels[idx], 'approved')
+  const logEntry = {
+    id: 'LOG-' + Date.now(),
+    at: new Date().toISOString(),
+    editorId: 'Admin',
+    action: 'อนุมัติโรงแรมเรียบร้อยแล้ว',
+    status: 'approved',
+    changes: [
+      { field: 'สถานะโรงแรม', from: 'รออนุมัติ (pending)', to: 'อนุมัติแล้ว (approved)' }
+    ]
+  }
+  hotels[idx] = {
+    ...hotels[idx],
+    editLogs: [logEntry, ...(hotels[idx].editLogs || [])]
+  }
   saveHotels(hotels)
 }
 
@@ -178,7 +192,22 @@ export function rejectHotel(hotelId, rejectReason) {
   const idx = hotels.findIndex(h => h.id === hotelId)
   if (idx === -1) throw new Error('Hotel not found')
   transition('hotel', hotels[idx], 'rejected')
-  hotels[idx] = { ...hotels[idx], rejectReason }
+  const logEntry = {
+    id: 'LOG-' + Date.now(),
+    at: new Date().toISOString(),
+    editorId: 'Admin',
+    action: 'ปฏิเสธคำขอเปิดโรงแรม',
+    status: 'rejected',
+    changes: [
+      { field: 'สถานะโรงแรม', from: 'รออนุมัติ (pending)', to: 'ปฏิเสธ (rejected)' },
+      { field: 'เหตุผลการปฏิเสธ', from: '-', to: rejectReason || 'ไม่ระบุเหตุผล' }
+    ]
+  }
+  hotels[idx] = { 
+    ...hotels[idx], 
+    rejectReason,
+    editLogs: [logEntry, ...(hotels[idx].editLogs || [])]
+  }
   saveHotels(hotels)
 }
 
@@ -226,6 +255,20 @@ export function createHotel({ managerId, name, location, description, pricePerNi
     status: 'pending',
     rejectReason: null,
     statusHistory: [{ status: 'pending', at: new Date().toISOString() }],
+    editLogs: [
+      {
+        id: 'LOG-INIT-' + Date.now(),
+        at: new Date().toISOString(),
+        editorId: managerId,
+        action: 'ส่งขอเปิดโรงแรมครั้งแรก (สร้างข้อมูลใหม่)',
+        status: 'pending',
+        changes: [
+          { field: 'การดำเนินการ', from: '-', to: 'สร้างโพสต์โรงแรมและส่งขออนุมัติ' },
+          { field: 'ราคาเริ่มต้น/คืน', from: '-', to: `฿${Number(pricePerNight) || 1000}` },
+          { field: 'ทำเลที่ตั้ง', from: '-', to: location.trim() }
+        ]
+      }
+    ]
   }
   db['adoga_hotels'] = [...(db['adoga_hotels'] || []), hotel]
   return hotel
@@ -235,7 +278,48 @@ export function updateHotel(hotelId, data) {
   const hotels = [...(db['adoga_hotels'] || [])]
   const idx = hotels.findIndex(h => h.id === hotelId)
   if (idx === -1) throw new Error('Hotel not found')
-  const h = { ...hotels[idx], ...data }
+  const prev = hotels[idx]
+
+  // Track field-by-field changes
+  const changes = []
+  if (data.name && data.name !== prev.name) {
+    changes.push({ field: 'ชื่อโรงแรม', from: prev.name, to: data.name })
+  }
+  if (data.location && data.location !== prev.location) {
+    changes.push({ field: 'ทำเลที่ตั้ง', from: prev.location, to: data.location })
+  }
+  if (data.pricePerNight !== undefined && Number(data.pricePerNight) !== Number(prev.pricePerNight)) {
+    changes.push({ field: 'ราคาเริ่มต้น/คืน', from: `฿${prev.pricePerNight}`, to: `฿${data.pricePerNight}` })
+  }
+  if (data.discount !== undefined && Number(data.discount) !== Number(prev.discount)) {
+    changes.push({ field: 'ส่วนลด', from: `${prev.discount || 0}%`, to: `${data.discount}%` })
+  }
+  if (data.description && data.description !== prev.description) {
+    changes.push({ field: 'รายละเอียดที่พัก', from: prev.description ? 'ข้อมูลเดิม' : 'ไม่มี', to: data.description })
+  }
+  if (data.amenities && JSON.stringify(data.amenities) !== JSON.stringify(prev.amenities)) {
+    changes.push({ field: 'สิ่งอำนวยความสะดวก', from: (prev.amenities || []).join(', ') || 'ไม่มี', to: (data.amenities || []).join(', ') })
+  }
+  if (data.images && JSON.stringify(data.images) !== JSON.stringify(prev.images)) {
+    changes.push({ field: 'รูปภาพโรงแรม', from: `${prev.images?.length || 0} รูป`, to: `${data.images?.length || 0} รูป` })
+  }
+  if (data.rooms && JSON.stringify(data.rooms) !== JSON.stringify(prev.rooms)) {
+    const prevUnits = (prev.rooms || []).reduce((s, r) => s + (r.units?.length || 0), 0)
+    const newUnits = (data.rooms || []).reduce((s, r) => s + (r.units?.length || 0), 0)
+    changes.push({ field: 'ห้องพักและจำนวนห้อง', from: `${prev.rooms?.length || 0} ประเภท (${prevUnits} ห้อง)`, to: `${data.rooms?.length || 0} ประเภท (${newUnits} ห้อง)` })
+  }
+
+  const logEntry = {
+    id: 'LOG-' + Date.now(),
+    at: new Date().toISOString(),
+    editorId: data.managerId || prev.managerId,
+    action: 'ส่งคำขอแก้ไขข้อมูลโรงแรมและห้องพัก',
+    status: 'pending',
+    changes: changes.length ? changes : [{ field: 'ข้อมูลทั่วไป', from: '-', to: 'แก้ไขข้อมูลและส่งตรวจสอบใหม่' }]
+  }
+
+  const editLogs = [logEntry, ...(prev.editLogs || [])]
+  const h = { ...prev, ...data, editLogs }
   if (h.status === 'approved' || h.status === 'rejected') {
     transition('hotel', h, 'pending')
   }
