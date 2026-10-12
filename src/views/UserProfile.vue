@@ -869,19 +869,17 @@ function printDocument() {
 
 <style>
 @media print {
-  /* Hide all elements on the entire page */
-  body * {
+  /* Scope to when the user profile document printable is present */
+  body:has(#a4-document-printable) * {
     visibility: hidden !important;
   }
 
-  /* Reveal ONLY the A4 printable document sheet and all its child elements */
-  #a4-document-printable,
-  #a4-document-printable * {
+  body:has(#a4-document-printable) #a4-document-printable,
+  body:has(#a4-document-printable) #a4-document-printable * {
     visibility: visible !important;
   }
 
-  /* Position the printable sheet at the top-left corner of page 1 */
-  #a4-document-printable {
+  body:has(#a4-document-printable) #a4-document-printable {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
@@ -899,12 +897,6 @@ function printDocument() {
   /* Hide modal buttons and top control action bar */
   .no-print {
     display: none !important;
-  }
-
-  /* Page setup for A4 */
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
   }
 }
 </style>
