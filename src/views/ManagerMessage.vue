@@ -4,7 +4,10 @@ import { computed, ref, nextTick, onMounted, watch } from 'vue'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import Sidebar from '../components/common/Sidebar.vue'
-import { Search, SlidersHorizontal, Send, MessageCircle, User, CheckCheck, Building, ArrowLeft } from '@lucide/vue'
+import { 
+  Search, SlidersHorizontal, Send, MessageCircle, User, CheckCheck, 
+  Building, ArrowLeft, Headphones 
+} from '@lucide/vue'
 
 const { session } = useSession()
 const selectedThread = ref(null) // { hotelId, userId }
@@ -12,9 +15,11 @@ const searchQuery = ref('')
 const newMsg = ref('')
 const msgContainer = ref(null)
 
+const isAdmin = computed(() => session.value?.role === 'admin')
+
 const myHotels = computed(() => {
-  if (session.value?.role === 'admin') {
-    return db['adoga_hotels'] || []
+  if (isAdmin.value) {
+    return (db['adoga_hotels'] || []).filter(h => h.id === 'H_ADMIN')
   }
   return (db['adoga_hotels'] || []).filter(h => h.managerId === session.value?.userId)
 })
@@ -54,49 +59,76 @@ function getUser(userId) {
 }
 
 function getHotel(hotelId) {
-  return myHotels.value.find(h => h.id === hotelId)
+  return (db['adoga_hotels'] || []).find(h => h.id === hotelId)
 }
 
 const threads = computed(() => {
-  const messages = db['adoga_messages'] || []
+  const allMessages = db['adoga_messages'] || []
   const map = {}
   
-  for (const m of messages) {
-    if (!myHotelIds.value.includes(m.hotelId)) continue
-    const key = `${m.hotelId}:${m.userId}`
-    
-    if (!map[key]) {
-      map[key] = {
-        hotelId: m.hotelId,
-        userId: m.userId,
-        lastMsg: m.text,
-        lastAt: m.sentAt,
-        unreadCount: m.sender === 'user' && m.unread ? 1 : 0
+  if (isAdmin.value) {
+    // Admin ONLY sees messages where someone contacted Admin Support (hotelId === 'H_ADMIN')
+    // Admin CANNOT see any conversations between users and hotel managers
+    for (const m of allMessages) {
+      if (m.hotelId !== 'H_ADMIN') continue
+      const key = `${m.hotelId}:${m.userId}`
+      
+      if (!map[key]) {
+        map[key] = {
+          hotelId: m.hotelId,
+          userId: m.userId,
+          lastMsg: m.text,
+          lastAt: m.sentAt,
+          unreadCount: (m.sender === 'user' || m.sender === 'manager') && m.unread ? 1 : 0
+        }
+      } else {
+        if (new Date(m.sentAt) > new Date(map[key].lastAt)) {
+          map[key].lastMsg = m.text
+          map[key].lastAt = m.sentAt
+        }
+        if ((m.sender === 'user' || m.sender === 'manager') && m.unread) {
+          map[key].unreadCount += 1
+        }
       }
-    } else {
-      if (new Date(m.sentAt) > new Date(map[key].lastAt)) {
-        map[key].lastMsg = m.text
-        map[key].lastAt = m.sentAt
-      }
-      if (m.sender === 'user' && m.unread) {
-        map[key].unreadCount += 1
+    }
+  } else {
+    // Manager ONLY sees messages for their hotels (excluding H_ADMIN)
+    for (const m of allMessages) {
+      if (!myHotelIds.value.includes(m.hotelId) || m.hotelId === 'H_ADMIN') continue
+      const key = `${m.hotelId}:${m.userId}`
+      
+      if (!map[key]) {
+        map[key] = {
+          hotelId: m.hotelId,
+          userId: m.userId,
+          lastMsg: m.text,
+          lastAt: m.sentAt,
+          unreadCount: m.sender === 'user' && m.unread ? 1 : 0
+        }
+      } else {
+        if (new Date(m.sentAt) > new Date(map[key].lastAt)) {
+          map[key].lastMsg = m.text
+          map[key].lastAt = m.sentAt
+        }
+        if (m.sender === 'user' && m.unread) {
+          map[key].unreadCount += 1
+        }
       }
     }
   }
   
   let list = Object.values(map)
-  
-  // Sort by latest message
   list.sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt))
   
-  // Filter search
+  // Search filter
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(t => {
       const u = getUser(t.userId)
       const h = getHotel(t.hotelId)
       return (
-        (u?.nickname || u?.firstName || '').toLowerCase().includes(q) ||
+        (u?.nickname || u?.firstName || u?.lastName || '').toLowerCase().includes(q) ||
+        (u?.email || '').toLowerCase().includes(q) ||
         (h?.name || '').toLowerCase().includes(q) ||
         t.lastMsg.toLowerCase().includes(q)
       )
@@ -111,9 +143,14 @@ function markAsRead(t) {
   const allMessages = db['adoga_messages'] || []
   let updated = false
   const updatedMessages = allMessages.map(m => {
-    if (m.hotelId === t.hotelId && m.userId === t.userId && m.sender === 'user' && m.unread) {
-      updated = true
-      return { ...m, unread: false }
+    if (m.hotelId === t.hotelId && m.userId === t.userId && m.unread) {
+      if (isAdmin.value && (m.sender === 'user' || m.sender === 'manager')) {
+        updated = true
+        return { ...m, unread: false }
+      } else if (!isAdmin.value && m.sender === 'user') {
+        updated = true
+        return { ...m, unread: false }
+      }
     }
     return m
   })
@@ -164,14 +201,15 @@ onMounted(() => {
 
 async function sendMsg() {
   if (!newMsg.value.trim() || !selectedThread.value) return
+  
   db['adoga_messages'] = [...(db['adoga_messages'] || []), {
     id: 'MSG' + Date.now(),
     hotelId: selectedThread.value.hotelId,
     userId: selectedThread.value.userId,
-    sender: 'manager',
+    sender: isAdmin.value ? 'admin' : 'manager',
     text: newMsg.value.trim(),
     sentAt: new Date().toISOString(),
-    unread: false,
+    unread: true,
   }]
   newMsg.value = ''
   scrollToBottom(true)
@@ -180,15 +218,24 @@ async function sendMsg() {
 
 <template>
   <div class="min-h-screen bg-canvas flex flex-col lg:flex-row">
-    <Sidebar :type="session?.role === 'admin' ? 'admin' : 'manager'" />
+    <Sidebar :type="isAdmin ? 'admin' : 'manager'" />
     
     <div class="flex-1 min-w-0 lg:ml-64 p-3 sm:p-6 md:p-8 flex flex-col">
-      <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-4 sm:mb-6">
-        {{ session?.role === 'admin' ? 'ข้อความระบบ & แชท' : 'ข้อความจากแขก' }}
-      </h1>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div>
+          <h1 class="font-display font-bold text-2xl sm:text-3xl text-slate-900">
+            {{ isAdmin ? 'ข้อความศูนย์ช่วยเหลือ & ซัพพอร์ต' : 'ข้อความจากแขก' }}
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            {{ isAdmin 
+              ? 'กล่องข้อความจากผู้ใช้งานและผู้จัดการโรงแรมที่ติดต่อขอความช่วยเหลือเข้ามาในระบบ' 
+              : 'พูดคุยและตอบคำถามของผู้เข้าพักที่สนใจหรือจองโรงแรมของคุณ' }}
+          </p>
+        </div>
+      </div>
 
       <!-- Messaging Interface Container -->
-      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[calc(100vh-180px)] min-h-[500px] md:h-[720px] shadow-sm">
+      <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[calc(100vh-210px)] min-h-[520px] md:h-[720px] shadow-sm">
         
         <!-- Sidebar: Conversation Threads List -->
         <div :class="['w-full md:w-80 lg:w-96 border-r border-line flex-col bg-slate-50/40 min-h-0', selectedThread ? 'hidden md:flex' : 'flex']">
@@ -200,7 +247,7 @@ async function sendMsg() {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="ค้นหาแขกหรือข้อความ..."
+                :placeholder="isAdmin ? 'ค้นหาผู้ติดต่อ หรือข้อความ...' : 'ค้นหาแขก ที่พัก หรือข้อความ...'"
                 class="w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder-slate-400"
               />
               <SlidersHorizontal class="w-4 h-4 text-slate-400 flex-shrink-0 cursor-pointer hover:text-slate-600" />
@@ -211,7 +258,7 @@ async function sendMsg() {
           <div class="flex-1 overflow-y-auto min-h-0 p-3 space-y-1.5 chat-scroll">
             <div v-if="!threads.length" class="py-12 text-center text-sm text-slate-400">
               <Building class="w-10 h-10 mx-auto text-slate-300 mb-2" />
-              <p>ยังไม่มีข้อความสนทนาจากแขก</p>
+              <p>{{ isAdmin ? 'ไม่มีข้อความขอความช่วยเหลือ' : 'ยังไม่มีข้อความสนทนาจากแขก' }}</p>
             </div>
 
             <button
@@ -221,33 +268,53 @@ async function sendMsg() {
               :class="[
                 'w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 border cursor-pointer group',
                 selectedThread?.hotelId === t.hotelId && selectedThread?.userId === t.userId
-                  ? 'bg-blue-50/80 border-blue-200 shadow-xs'
+                  ? (isAdmin ? 'bg-indigo-50/80 border-indigo-200 shadow-xs' : 'bg-blue-50/80 border-blue-200 shadow-xs')
                   : 'bg-white hover:bg-slate-100/70 border-transparent hover:border-slate-200'
               ]"
             >
-              <!-- Hotel Photo or Guest Avatar Thumbnail -->
-              <img
-                :src="getHotel(t.hotelId)?.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=300&q=80'"
-                :alt="getHotel(t.hotelId)?.name"
-                class="w-13 h-13 object-cover rounded-2xl flex-shrink-0 border border-slate-200 shadow-2xs group-hover:scale-105 transition-transform"
-              />
+              <!-- Avatar or Hotel Thumbnail -->
+              <template v-if="isAdmin">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center flex-shrink-0 border border-indigo-200 text-base shadow-2xs">
+                  {{ (getUser(t.userId)?.nickname || getUser(t.userId)?.firstName || 'U')[0].toUpperCase() }}
+                </div>
+              </template>
+              <template v-else>
+                <img
+                  :src="getHotel(t.hotelId)?.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=300&q=80'"
+                  :alt="getHotel(t.hotelId)?.name"
+                  class="w-13 h-13 object-cover rounded-2xl flex-shrink-0 border border-slate-200 shadow-2xs group-hover:scale-105 transition-transform"
+                />
+              </template>
 
-              <!-- Title, Last Msg snippet & Timestamp -->
+              <!-- Thread Info -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline justify-between mb-0.5 gap-2">
-                  <h4 class="font-semibold text-slate-900 text-sm sm:text-base truncate leading-snug">
-                    {{ getHotel(t.hotelId)?.name }}
-                  </h4>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <h4 class="font-semibold text-slate-900 text-sm sm:text-base truncate leading-snug">
+                      <template v-if="isAdmin">
+                        {{ getUser(t.userId)?.firstName || '' }} {{ getUser(t.userId)?.lastName || '' }} ({{ getUser(t.userId)?.nickname || t.userId }})
+                      </template>
+                      <template v-else>
+                        {{ getHotel(t.hotelId)?.name }}
+                      </template>
+                    </h4>
+                  </div>
                   <span class="text-[11px] font-semibold text-slate-400 flex-shrink-0">
                     {{ formatMsgTime(t.lastAt) }}
                   </span>
                 </div>
 
-                <p class="text-xs font-semibold text-blue-600 truncate mb-0.5">
+                <!-- Subtitle / Email / Hotel info -->
+                <p v-if="isAdmin" class="text-xs font-semibold text-indigo-600 truncate mb-0.5 flex items-center gap-1">
+                  <span>✉️ {{ getUser(t.userId)?.email || 'ไม่ระบุอีเมล' }}</span>
+                  <span v-if="getUser(t.userId)?.role === 'manager'" class="px-1.5 py-0.2 rounded text-[10px] bg-amber-100 text-amber-700 font-bold ml-1">ผู้จัดการ</span>
+                  <span v-else class="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 text-slate-600 font-medium ml-1">ผู้ใช้ทั่วไป</span>
+                </p>
+                <p v-else class="text-xs font-semibold text-blue-600 truncate mb-0.5">
                   👤 {{ getUser(t.userId)?.nickname || getUser(t.userId)?.firstName || t.userId }}
                 </p>
 
-                <!-- Latest Message snippet directly under name -->
+                <!-- Latest Message snippet -->
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs text-slate-500 truncate leading-snug line-clamp-1">
                     {{ t.lastMsg }}
@@ -255,7 +322,10 @@ async function sendMsg() {
                   
                   <span
                     v-if="t.unreadCount > 0"
-                    class="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs"
+                    :class="[
+                      'w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 shadow-xs',
+                      isAdmin ? 'bg-indigo-600' : 'bg-blue-600'
+                    ]"
                   >
                     {{ t.unreadCount }}
                   </span>
@@ -270,7 +340,11 @@ async function sendMsg() {
           <div v-if="!selectedThread" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
             <MessageCircle class="w-16 h-16 text-slate-300 mb-4" :stroke-width="1.5" />
             <p class="text-lg font-semibold text-slate-700 mb-1">เลือกการสนทนา</p>
-            <p class="text-sm text-slate-400">เลือกข้อความแขกด้านซ้ายมือเพื่อตอบกลับ</p>
+            <p class="text-sm text-slate-400">
+              {{ isAdmin 
+                ? 'เลือกผู้ติดต่อด้านซ้ายมือเพื่อตอบกลับในนามศูนย์ช่วยเหลือ Adoga' 
+                : 'เลือกการสนทนาด้านซ้ายมือเพื่อดูและตอบกลับ' }}
+            </p>
           </div>
 
           <div v-else class="flex-1 flex flex-col min-h-0">
@@ -291,11 +365,21 @@ async function sendMsg() {
                   <User class="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                 </div>
                 <div class="min-w-0">
-                  <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">
-                    {{ getUser(selectedThread.userId)?.firstName }} {{ getUser(selectedThread.userId)?.lastName }} ({{ getUser(selectedThread.userId)?.nickname }})
-                  </h3>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">
+                      {{ getUser(selectedThread.userId)?.firstName }} {{ getUser(selectedThread.userId)?.lastName }} ({{ getUser(selectedThread.userId)?.nickname || selectedThread.userId }})
+                    </h3>
+                    <span v-if="isAdmin" class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex-shrink-0">
+                      {{ getUser(selectedThread.userId)?.role === 'manager' ? 'ผู้จัดการโรงแรม' : 'ผู้ใช้งาน' }}
+                    </span>
+                  </div>
                   <p class="text-xs text-slate-500 mt-0.5 truncate">
-                    ที่พัก: <strong class="text-slate-800">{{ getHotel(selectedThread.hotelId)?.name }}</strong>
+                    <template v-if="isAdmin">
+                      อีเมล: <strong class="text-slate-800">{{ getUser(selectedThread.userId)?.email }}</strong>
+                    </template>
+                    <template v-else>
+                      ที่พัก: <strong class="text-slate-800">{{ getHotel(selectedThread.hotelId)?.name }}</strong>
+                    </template>
                   </p>
                 </div>
               </div>
@@ -313,21 +397,31 @@ async function sendMsg() {
               <div
                 v-for="m in messages"
                 :key="m.id"
-                :class="['flex flex-col relative z-10', m.sender === 'manager' ? 'items-end' : 'items-start']"
+                :class="[
+                  'flex flex-col relative z-10', 
+                  (isAdmin && m.sender === 'admin') || (!isAdmin && m.sender === 'manager')
+                    ? 'items-end' 
+                    : 'items-start'
+                ]"
               >
                 <div
                   :class="[
                     'max-w-[85%] sm:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
-                    m.sender === 'manager'
-                      ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
-                      : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
+                    (isAdmin && m.sender === 'admin')
+                      ? 'bg-indigo-600 text-white rounded-br-xs font-medium shadow-indigo-600/20'
+                      : (!isAdmin && m.sender === 'manager')
+                        ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
+                        : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
                   ]"
                 >
                   {{ m.text }}
                 </div>
                 <span class="text-[10px] font-medium text-slate-500 mt-1 px-2 py-0.5 rounded-full bg-white/80 backdrop-blur-xs flex items-center gap-1 shadow-2xs">
                   {{ formatMsgTime(m.sentAt) }}
-                  <CheckCheck v-if="m.sender === 'manager'" class="w-3 h-3 text-blue-500" />
+                  <CheckCheck 
+                    v-if="(isAdmin && m.sender === 'admin') || (!isAdmin && m.sender === 'manager')" 
+                    class="w-3 h-3 text-indigo-500" 
+                  />
                 </span>
               </div>
             </div>
@@ -338,14 +432,17 @@ async function sendMsg() {
                 v-model="newMsg"
                 @keydown.enter.prevent="sendMsg"
                 type="text"
-                placeholder="พิมพ์ข้อความตอบกลับแขก..."
-                class="flex-1 h-10 sm:h-11 px-4 sm:px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600 transition-colors"
+                :placeholder="isAdmin ? 'พิมพ์ข้อความตอบกลับในนามศูนย์ช่วยเหลือ Adoga (Admin Support)...' : 'พิมพ์ข้อความตอบกลับแขก...'"
+                class="flex-1 h-10 sm:h-11 px-4 sm:px-5 rounded-full border-2 border-slate-200 text-sm text-slate-900 outline-none focus:border-indigo-600 transition-colors"
               />
               <button
                 @click="sendMsg"
                 :disabled="!newMsg.trim()"
                 type="button"
-                class="h-10 sm:h-11 px-4 sm:px-6 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex-shrink-0"
+                :class="[
+                  'h-10 sm:h-11 px-4 sm:px-6 rounded-full text-white font-semibold text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-md disabled:opacity-50 cursor-pointer flex-shrink-0',
+                  isAdmin ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                ]"
               >
                 <span>ส่ง</span>
                 <Send class="w-4 h-4" :stroke-width="2" />
@@ -378,4 +475,3 @@ async function sendMsg() {
   background: #94a3b8;
 }
 </style>
-

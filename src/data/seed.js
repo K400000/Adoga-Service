@@ -4,7 +4,7 @@ import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 import { db } from '../stores/db.js'
 
-const VERSION = 6
+const VERSION = 7
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -18,11 +18,11 @@ export function runSeed(force = false) {
 
   // ── Users ────────────────────────────────────────────────
   const users = [
-    { id: 'U001', email: 'user@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'John',    lastName: 'Doe',     nickname: 'Johnny', phone: '081-234-5678', birthdate: '1996-05-15', provider: 'local', createdAt: isoD(-30) },
-    { id: 'U002', email: 'mary@gmail.com',    password: 'Adoga1234', role: 'user',    firstName: 'Mary',    lastName: 'Smith',   nickname: 'Mary',   phone: '089-876-5432', birthdate: '1998-11-20', provider: 'local', createdAt: isoD(-25) },
-    { id: 'M001', email: 'hotel@domain.com',  password: 'Adoga1234', role: 'manager', firstName: 'Somchai', lastName: 'Rakthai', nickname: 'Chai',   phone: '082-111-2233', birthdate: '1988-03-10', provider: 'local', createdAt: isoD(-60) },
-    { id: 'M002', email: 'hotel2@domain.com', password: 'Adoga1234', role: 'manager', firstName: 'Suda',    lastName: 'Meesuk',  nickname: 'Suda',   phone: '083-444-5566', birthdate: '1990-07-25', provider: 'local', createdAt: isoD(-55) },
-    { id: 'A001', email: 'admin@adoga.com',   password: 'Adoga1234', role: 'admin',   firstName: 'Admin',   lastName: 'Adoga',   nickname: 'Admin',  phone: '080-000-0000', birthdate: '1992-01-01', provider: 'local', createdAt: isoD(-90) },
+    { id: 'U001', email: 'user@gmail.com',     password: 'Adoga1234', role: 'user',    firstName: 'John',    lastName: 'Doe',     nickname: 'Johnny', phone: '081-234-5678', birthdate: '1996-05-15', provider: 'local', createdAt: isoD(-30) },
+    { id: 'U002', email: 'mary@gmail.com',     password: 'Adoga1234', role: 'user',    firstName: 'Mary',    lastName: 'Smith',   nickname: 'Mary',   phone: '089-876-5432', birthdate: '1998-11-20', provider: 'local', createdAt: isoD(-25) },
+    { id: 'M001', email: 'manager@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Somchai', lastName: 'Rakthai', nickname: 'Chai',   phone: '082-111-2233', birthdate: '1988-03-10', provider: 'local', createdAt: isoD(-60) },
+    { id: 'M002', email: 'manager2@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Suda',    lastName: 'Meesuk',  nickname: 'Suda',   phone: '083-444-5566', birthdate: '1990-07-25', provider: 'local', createdAt: isoD(-55) },
+    { id: 'A001', email: 'admin@gmail.com',    password: 'Adoga1234', role: 'admin',   firstName: 'Admin',   lastName: 'Adoga',   nickname: 'Admin',  phone: '080-000-0000', birthdate: '1992-01-01', provider: 'local', createdAt: isoD(-90) },
   ]
 
   // ── Hotels ───────────────────────────────────────────────
@@ -238,6 +238,21 @@ export function runSeed(force = false) {
         mkRoom('H015-R5', 'Family Heritage Residence', 4500, 5, [mkUnit('2904','available')]),
       ],
     },
+    {
+      id: 'H_ADMIN',
+      managerId: 'A001',
+      name: 'ฝ่ายบริการลูกค้า (Admin Support)',
+      location: 'ศูนย์ช่วยเหลือ Adoga Service',
+      description: 'ทีมงานผู้ดูแลระบบพร้อมช่วยเหลือและให้คำปรึกษาตลอด 24 ชั่วโมง',
+      pricePerNight: 0,
+      discount: 0,
+      status: 'approved',
+      rejectReason: null,
+      images: ['/docs/ui-specs/adoga_logo.png'],
+      amenities: ['ช่วยเหลือ 24 ชม.', 'ตอบกลับรวดเร็ว'],
+      rating: 5.0,
+      rooms: []
+    },
   ]
 
   // ── Bookings ──────────────────────────────────────────────
@@ -271,33 +286,33 @@ export function runSeed(force = false) {
     { id:'R008', hotelId:'H012', userId:'U001', rating:5, comment:'วิวดอยภูคาและทุ่งนาเขียวขจี อากาศดีมาก กาแฟดริปอร่อย', date: isoD(-2) },
   ]
 
-  // ── Messages ──────────────────────────────────────────────
+  // ── Messages (Separated per Role & Gmail) ──────────────────
   const messages = [
-    // U001 Messages
-    { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-3), unread: false },
-    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'สวัสดีครับ ขอบคุณที่จองกับเรา หากมีคำถามเพิ่มเติม เรายินดีให้บริการครับ', sentAt: isoH(-2), unread: true },
-    
-    { id:'MSG003', hotelId:'H002', userId:'U001', sender:'user',    text:'มีที่จอดรถสำหรับรถบัสไหมครับ', sentAt: isoH(-4), unread: false },
-    { id:'MSG004', hotelId:'H002', userId:'U001', sender:'manager', text:'ได้เลยครับ ทางโรงแรมยินดีต้อนรับคุณครับ หากต้องการให้เราจัดเตรียมอะไรเพิ่มเติม...', sentAt: isoH(-3), unread: true },
+    // ── 1. User John (user@gmail.com / U001) Messages ────────
+    // Thread: U001 ↔ Manager Somchai (manager@gmail.com / M001) at H001
+    { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-4), unread: false },
+    { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'สวัสดีครับ ขอบคุณที่จองกับเรา ทางโรงแรมยินดีให้บริการครับ (สามารถเช็คอินล่วงหน้าได้ตั้งแต่ 12:00 น.)', sentAt: isoH(-3), unread: true },
 
-    { id:'MSG005', hotelId:'H003', userId:'U001', sender:'user',    text:'มีบริการรถรับส่งจากสนามบินเชียงใหม่ไหมครับ', sentAt: isoD(-1), unread: false },
-    { id:'MSG006', hotelId:'H003', userId:'U001', sender:'manager', text:'ขอบคุณมากครับ ทางเราจะเตรียมห้องให้ตามคำขอครับ', sentAt: isoD(-1), unread: false },
+    // Thread: U001 ↔ Manager Somchai (manager@gmail.com / M001) at H002
+    { id:'MSG003', hotelId:'H002', userId:'U001', sender:'user',    text:'มีที่จอดรถสำหรับรถบัสไหมครับ', sentAt: isoH(-5), unread: false },
+    { id:'MSG004', hotelId:'H002', userId:'U001', sender:'manager', text:'ได้เลยครับ ทางโรงแรมมีลานจอดรถบัสรองรับได้ถึง 5 คันครับ ยินดีต้อนรับครับ', sentAt: isoH(-4), unread: true },
 
-    { id:'MSG007', hotelId:'H005', userId:'U001', sender:'user',    text:'ขอสอบถามเรื่องเวลาเช็คอินครับ', sentAt: isoD(-1), unread: false },
-    { id:'MSG008', hotelId:'H005', userId:'U001', sender:'manager', text:'สวัสดีค่ะ สามารถเช็คอินได้ตั้งแต่ 14:00 น. ค่ะ', sentAt: isoD(-1), unread: false },
+    // Thread: U001 ↔ Admin Support (admin@gmail.com / A001) at H_ADMIN
+    { id:'MSG005', hotelId:'H_ADMIN', userId:'U001', sender:'user',  text:'สวัสดีครับ สอบถามเรื่องขอใบเสร็จรับเงิน / ใบกำกับภาษีสำหรับการจองที่พักครับ', sentAt: isoH(-2), unread: false },
+    { id:'MSG006', hotelId:'H_ADMIN', userId:'U001', sender:'admin', text:'สวัสดีครับคุณ John Doe ทางระบบได้จัดส่ง e-Receipt ไปยังอีเมล user@gmail.com ให้เรียบร้อยแล้วครับ หากต้องการใบกำกับภาษีฉบับเต็ม สามารถดาวน์โหลดในหน้าการจองได้เลยครับ', sentAt: isoH(-1), unread: true },
 
-    { id:'MSG009', hotelId:'H007', userId:'U001', sender:'user',    text:'เตียงเสริมมีค่าใช้จ่ายเพิ่มเติมเท่าไรครับ', sentAt: isoD(-2), unread: false },
-    { id:'MSG010', hotelId:'H007', userId:'U001', sender:'manager', text:'ขออภัยในความไม่สะดวก ทางเราจะตรวจสอบและแจ้งกลับครับ', sentAt: isoD(-2), unread: false },
+    // ── 2. User Mary (mary@gmail.com / U002) Messages ─────────
+    // Thread: U002 ↔ Manager Suda (manager2@gmail.com / M002) at H003
+    { id:'MSG007', hotelId:'H003', userId:'U002', sender:'user',    text:'ต้องการขอเตียงเสริมสำหรับเด็ก 1 ขวบค่ะ', sentAt: isoH(-6), unread: false },
+    { id:'MSG008', hotelId:'H003', userId:'U002', sender:'manager', text:'สวัสดีค่ะคุณ Mary ทางเราจัดเตรียมเปลเด็กและชุดเครื่องนอนให้เรียบร้อยแล้วค่ะ ไม่มีค่าใช้จ่ายเพิ่มเติมนะคะ', sentAt: isoH(-5), unread: true },
 
-    { id:'MSG011', hotelId:'H008', userId:'U001', sender:'user',    text:'ประทับใจการบริการมากครับ', sentAt: isoD(-3), unread: false },
-    { id:'MSG012', hotelId:'H008', userId:'U001', sender:'manager', text:'ขอบคุณที่ใช้บริการค่ะ หวังว่าจะได้ต้อนรับอีกครั้ง', sentAt: isoD(-3), unread: false },
+    // Thread: U002 ↔ Admin Support (admin@gmail.com / A001) at H_ADMIN
+    { id:'MSG009', hotelId:'H_ADMIN', userId:'U002', sender:'user',  text:'ขอสอบถามเงื่อนไขการยกเลิกการจองและระยะเวลาคืนเงินค่ะ', sentAt: isoD(-1), unread: false },
+    { id:'MSG010', hotelId:'H_ADMIN', userId:'U002', sender:'admin', text:'สวัสดีครับคุณ Mary หากยกเลิกก่อนวันเข้าพักตามนโยบาย จะได้รับเงินคืนภายใน 3-5 วันทำการผ่านช่องทางเดิมที่ชำระเข้ามาครับ', sentAt: isoH(-12), unread: false },
 
-    // U002 Messages
-    { id:'MSG013', hotelId:'H003', userId:'U002', sender:'user',    text:'ต้องการขอเตียงเสริมสำหรับเด็ก 1 ขวบค่ะ', sentAt: isoH(-5), unread: false },
-    { id:'MSG014', hotelId:'H003', userId:'U002', sender:'manager', text:'ทางเราจัดเตรียมเปลเด็กให้เรียบร้อยแล้วค่ะ', sentAt: isoH(-4), unread: true },
-
-    { id:'MSG015', hotelId:'H010', userId:'U002', sender:'user',    text:'มีเรือข้ามฟากไปไอคอนสยามไหมคะ', sentAt: isoD(-1), unread: false },
-    { id:'MSG016', hotelId:'H010', userId:'U002', sender:'manager', text:'มีบริการเรือรับส่งข้ามฟากฟรีทุก 30 นาทีครับ', sentAt: isoD(-1), unread: false },
+    // ── 3. Manager Somchai (manager@gmail.com / M001) ↔ Admin Support ──
+    { id:'MSG011', hotelId:'H_ADMIN', userId:'M001', sender:'user',  text:'สวัสดีครับแอดมิน สอบถามเรื่องรอบการโอนเงินรายได้โรงแรม Chonburi Sea View ประจำสัปดาห์นี้ครับ', sentAt: isoD(-2), unread: false },
+    { id:'MSG012', hotelId:'H_ADMIN', userId:'M001', sender:'admin', text:'สวัสดีครับคุณ Somchai ทางทีมการเงินสรุปยอดเรียบร้อยแล้ว จะดำเนินการโอนเข้าบัญชีที่ผูกไว้ในวันศุกร์นี้ครับ ขอบคุณครับ', sentAt: isoD(-1), unread: false },
   ]
 
   // ── Settings & Filler Bookings ────────────────────────────

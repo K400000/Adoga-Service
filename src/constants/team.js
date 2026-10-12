@@ -1,9 +1,9 @@
 // src/constants/team.js
 export const TEAM = [
-  { id: 1, name: 'นางสาวประภาพร ตาจันทร์', email: 'member1@example.com', stdid: '6730200219' },
-  { id: 2, name: 'นายปิยกร คชานนท์', email: 'member2@example.com', stdid: '6730200227' },
-  { id: 3, name: 'นายสุพศิน คำพะแย', email: 'member3@example.com', stdid: '6730200359' },
-  { id: 4, name: 'นางสาวอัสรา ทราจารวัตร', email: 'member4@example.com', stdid: '6730200391' }
+  { id: 1, name: 'นางสาวประภาพร ตาจันทร์', email: 'prapaporn.ta@ku.th', stdid: '6730200219' },
+  { id: 2, name: 'นายปิยกร คชานนท์', email: 'piyakorn.k@ku.th', stdid: '6730200227' },
+  { id: 3, name: 'นายสุพศิน คำพะแย', email: 'supasin.kh@ku.th', stdid: '6730200359' },
+  { id: 4, name: 'นางสาวอัสรา ทราจารวัตร', email: 'asra.tr@ku.th', stdid: '6730200391' }
 ]
 
 export const PROJECT_INFO = {

@@ -14,6 +14,7 @@ import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import { Copy, Check, Building2 } from '@lucide/vue'
 import { showToast } from '../utils/toast.js'
+import qrPaymentImg from '../assets/QRCODE_Payment.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -306,11 +307,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
               <!-- QR Code Payment display (for QR PromptPay) -->
               <div v-else class="p-6 rounded-xl bg-canvas border border-line text-center mb-4">
-                <p class="text-sm text-ink-muted mb-2">QR PromptPay</p>
-                <div class="w-40 h-40 mx-auto bg-white border border-line rounded-xl flex items-center justify-center text-ink-muted text-xs">
-                  [QR Code Mock]
+                <p class="text-sm font-medium text-ink-muted mb-3">QR PromptPay</p>
+                <div class="w-48 h-48 mx-auto bg-white border border-line rounded-2xl p-2.5 flex items-center justify-center shadow-xs">
+                  <img :src="qrPaymentImg" alt="QR Code Payment" class="w-full h-full object-contain rounded-lg" />
                 </div>
                 <p class="mt-3 font-display font-semibold text-2xl text-ink tabular-nums">{{ formatPrice(booking.totalPrice) }}</p>
+                <p class="text-xs text-ink-muted mt-1">สแกนจ่ายผ่านแอปพลิเคชันธนาคารทุกธนาคาร</p>
               </div>
 
               <!-- Simulate fail toggle -->

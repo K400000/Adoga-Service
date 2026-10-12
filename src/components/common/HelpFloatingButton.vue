@@ -14,6 +14,11 @@ function handleHelpClick() {
     return
   }
 
+  if (session.value?.role === 'admin') {
+    router.push('/admin/messages')
+    return
+  }
+
   const userId = session.value.userId
   const allMessages = db['adoga_messages'] || []
 
@@ -47,7 +52,7 @@ function handleHelpClick() {
       id: 'MSG_ADMIN_' + Date.now(),
       hotelId: 'H_ADMIN',
       userId: userId,
-      sender: 'manager', // Admin/Support side
+      sender: 'admin', // Admin/Support side
       text: 'สวัสดีครับ ยินดีต้อนรับสู่ศูนย์ช่วยเหลือ Adoga Service มีอะไรให้ทีมงาน Admin ช่วยเหลือไหมครับ?',
       sentAt: new Date().toISOString(),
       unread: true,

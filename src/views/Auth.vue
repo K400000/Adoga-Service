@@ -36,8 +36,8 @@ const googleAccounts = computed(() => {
     : [
         { email: 'user@gmail.com', firstName: 'John', lastName: 'Doe', role: 'user' },
         { email: 'mary@gmail.com', firstName: 'Mary', lastName: 'Smith', role: 'user' },
-        { email: 'hotel@domain.com', firstName: 'Somchai', lastName: 'Rakthai', role: 'manager' },
-        { email: 'admin@adoga.com', firstName: 'Admin', lastName: 'Adoga', role: 'admin' },
+        { email: 'manager@gmail.com', firstName: 'Somchai', lastName: 'Rakthai', role: 'manager' },
+        { email: 'admin@gmail.com', firstName: 'Admin', lastName: 'Adoga', role: 'admin' },
       ]
 
   return users.map((u, idx) => {
@@ -135,8 +135,8 @@ const pwdRules = computed(() => getPasswordRules(regPassword.value))
 // Demo accounts
 const DEMOS = [
   { label: 'ผู้ใช้ (User)', email: 'user@gmail.com', password: 'Adoga1234' },
-  { label: 'ผู้จัดการ (Manager)', email: 'hotel@domain.com', password: 'Adoga1234' },
-  { label: 'แอดมิน (Admin)', email: 'admin@adoga.com', password: 'Adoga1234' },
+  { label: 'ผู้จัดการ (Manager)', email: 'manager@gmail.com', password: 'Adoga1234' },
+  { label: 'แอดมิน (Admin)', email: 'admin@gmail.com', password: 'Adoga1234' },
 ]
 
 function fillDemo(d) {

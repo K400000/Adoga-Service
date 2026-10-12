@@ -121,10 +121,10 @@ function bookRoom(room) {
 
 function chatHotel() {
   if (isGuest.value) {
-    router.push(`/auth?redirect=/messages&reason=login_required`)
+    router.push(`/auth?redirect=/messages?hotelId=${hotel.value?.id}&reason=login_required`)
     return
   }
-  router.push('/messages')
+  router.push(`/messages?hotelId=${hotel.value?.id}`)
 }
 
 const availableCount = (room) => room.units?.filter(u => u.status === 'available').length || 0

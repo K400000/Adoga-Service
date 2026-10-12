@@ -41,7 +41,16 @@ export function register({ email, password, firstName, lastName, nickname, phone
 
 export function login(email, password) {
   const users = db['adoga_users'] || []
-  const user = users.find(u => u.email === email.trim().toLowerCase())
+  const cleanEmail = email.trim().toLowerCase()
+  const user = users.find(u => 
+    u.email === cleanEmail ||
+    (cleanEmail === 'hotel@domain.com' && u.email === 'manager@gmail.com') ||
+    (cleanEmail === 'manager@gmail.com' && u.email === 'hotel@domain.com') ||
+    (cleanEmail === 'hotel2@domain.com' && u.email === 'manager2@gmail.com') ||
+    (cleanEmail === 'manager2@gmail.com' && u.email === 'hotel2@domain.com') ||
+    (cleanEmail === 'admin@adoga.com' && u.email === 'admin@gmail.com') ||
+    (cleanEmail === 'admin@gmail.com' && u.email === 'admin@adoga.com')
+  )
   if (!user) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียน' }
   if (user.password !== password) return { ok: false, message: 'รหัสผ่านไม่ถูกต้อง' }
   if (user.disabled || user.status === 'disabled') {
@@ -54,16 +63,32 @@ export function login(email, password) {
 
 export function loginWithGoogleEmail(email) {
   const users = db['adoga_users'] || []
-  let user = users.find(u => u.email === email.trim().toLowerCase())
+  const cleanEmail = email.trim().toLowerCase()
+  let user = users.find(u => 
+    u.email === cleanEmail ||
+    (cleanEmail === 'hotel@domain.com' && u.email === 'manager@gmail.com') ||
+    (cleanEmail === 'manager@gmail.com' && u.email === 'hotel@domain.com') ||
+    (cleanEmail === 'hotel2@domain.com' && u.email === 'manager2@gmail.com') ||
+    (cleanEmail === 'manager2@gmail.com' && u.email === 'hotel2@domain.com') ||
+    (cleanEmail === 'admin@adoga.com' && u.email === 'admin@gmail.com') ||
+    (cleanEmail === 'admin@gmail.com' && u.email === 'admin@adoga.com')
+  )
   if (!user) {
-    const cleanEmail = email.trim().toLowerCase()
     const emailPrefix = cleanEmail.split('@')[0] || 'User'
     const formattedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    
+    let detectedRole = 'user'
+    if (cleanEmail.includes('admin')) {
+      detectedRole = 'admin'
+    } else if (cleanEmail.includes('manager')) {
+      detectedRole = 'manager'
+    }
+
     user = {
-      id: nextId('user'),
+      id: nextId(detectedRole),
       email: cleanEmail,
       password: '',
-      role: 'user',
+      role: detectedRole,
       firstName: formattedName,
       lastName: '',
       nickname: formattedName,

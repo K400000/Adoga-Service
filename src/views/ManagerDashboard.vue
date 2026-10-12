@@ -5,7 +5,7 @@ import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import {
   approveRefund, rejectRefund, startReview,
-  suspendHotel, activateHotel, closeHotel,
+  suspendHotel, activateHotel,
   setUnitMaintenance, setUnitAvailable,
   createHotel, updateHotel
 } from '../services/transitions.js'
@@ -17,7 +17,7 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import { RouterLink } from 'vue-router'
-import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search, BedDouble, Trash2, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Plus, FileText, Search, BedDouble, Trash2, ChevronLeft, ChevronRight } from '@lucide/vue'
 
 const { session } = useSession()
 
@@ -424,13 +424,6 @@ function saveHotelForm() {
   showHotelModal.value = false
 }
 
-function doCloseHotel(hotelId) {
-  if (confirm('ยืนยันการปิดกิจการโรงแรมนี้ถาวรหรือไม่?')) {
-    closeHotel(hotelId)
-    showToast('ปิดกิจการโรงแรมเรียบร้อยแล้ว', 'info')
-  }
-}
-
 function doSuspend(hotelId) {
   suspendHotel(hotelId)
   showToast('ปิดรับจองชั่วคราวแล้ว', 'info')
@@ -559,14 +552,6 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
                       variant="secondary"
                       size="sm"
                     >เปิดใช้งาน</BaseButton>
-                    <BaseButton
-                      v-if="hotel.status === 'approved'"
-                      @click="doCloseHotel(hotel.id)"
-                      variant="danger"
-                      size="sm"
-                    >
-                      <Archive class="w-3.5 h-3.5 mr-1" /> ปิดกิจการ
-                    </BaseButton>
                   </div>
                 </template>
               </StatusBanner>

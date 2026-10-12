@@ -84,7 +84,7 @@ function clearAllFilters() {
 
 const activeHotels = computed(() => {
   const hotels = db['adoga_hotels'] || []
-  return hotels.filter(h => h.status === 'approved')
+  return hotels.filter(h => h.status === 'approved' && h.id !== 'H_ADMIN')
 })
 
 const filteredHotels = computed(() => {

@@ -1,6 +1,6 @@
 <script setup>
 // src/views/ForgotPassword.vue
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { db } from '../stores/db.js'
 import { resetPassword } from '../services/authService.js'
@@ -16,14 +16,20 @@ const step = ref(1) // 1=email, 2=pin, 3=newpwd
 const email = ref('')
 const emailError = ref('')
 const mockPin = ref('')
-const pin = ref('')
+const pinDigits = ref(['', '', '', '', '', ''])
+const pinInputs = ref([])
 const pinError = ref('')
 const newPwd = ref('')
 const confirmPwd = ref('')
 const pwdError = ref('')
 const loading = ref(false)
 
+const pin = computed(() => pinDigits.value.join(''))
 const pwdRules = computed(() => getPasswordRules(newPwd.value))
+
+function setPinInputRef(el, idx) {
+  if (el) pinInputs.value[idx] = el
+}
 
 function doSendPin() {
   const users = db['adoga_users'] || []
@@ -33,11 +39,91 @@ function doSendPin() {
   emailError.value = ''
   mockPin.value = String(Math.floor(100000 + Math.random() * 900000))
   showToast(`PIN จำลอง: ${mockPin.value}`, 'info', 10000)
+  pinDigits.value = ['', '', '', '', '', '']
+  pinError.value = ''
   step.value = 2
+  nextTick(() => {
+    pinInputs.value[0]?.focus()
+  })
+}
+
+function onDigitInput(event, idx) {
+  const val = event.target.value
+  pinError.value = ''
+  
+  const digitsOnly = val.replace(/\D/g, '')
+  
+  if (!digitsOnly) {
+    pinDigits.value[idx] = ''
+    return
+  }
+
+  if (digitsOnly.length > 1) {
+    const chars = digitsOnly.slice(0, 6).split('')
+    chars.forEach((char, i) => {
+      if (idx + i < 6) {
+        pinDigits.value[idx + i] = char
+      }
+    })
+    const nextIdx = Math.min(idx + chars.length, 5)
+    pinInputs.value[nextIdx]?.focus()
+    return
+  }
+
+  pinDigits.value[idx] = digitsOnly.charAt(digitsOnly.length - 1)
+  if (idx < 5) {
+    pinInputs.value[idx + 1]?.focus()
+  }
+}
+
+function onDigitKeyDown(event, idx) {
+  if (event.key === 'Backspace') {
+    if (!pinDigits.value[idx] && idx > 0) {
+      pinDigits.value[idx - 1] = ''
+      pinInputs.value[idx - 1]?.focus()
+    } else {
+      pinDigits.value[idx] = ''
+    }
+  } else if (event.key === 'ArrowLeft' && idx > 0) {
+    event.preventDefault()
+    pinInputs.value[idx - 1]?.focus()
+  } else if (event.key === 'ArrowRight' && idx < 5) {
+    event.preventDefault()
+    pinInputs.value[idx + 1]?.focus()
+  }
+}
+
+function onPaste(event) {
+  event.preventDefault()
+  const pasted = (event.clipboardData || window.clipboardData).getData('text')
+  const digitsOnly = pasted.replace(/\D/g, '').slice(0, 6)
+  if (!digitsOnly) return
+  
+  pinError.value = ''
+  const chars = digitsOnly.split('')
+  chars.forEach((char, i) => {
+    if (i < 6) {
+      pinDigits.value[i] = char
+    }
+  })
+  
+  const targetFocus = Math.min(chars.length, 5)
+  pinInputs.value[targetFocus]?.focus()
+
+  if (digitsOnly.length === 6) {
+    doVerifyPin()
+  }
 }
 
 function doVerifyPin() {
-  if (pin.value !== mockPin.value) { pinError.value = 'PIN ไม่ถูกต้อง'; return }
+  if (pin.value.length < 6) {
+    pinError.value = 'กรุณากรอกรหัส PIN ให้ครบ 6 หลัก'
+    return
+  }
+  if (pin.value !== mockPin.value) {
+    pinError.value = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง'
+    return
+  }
   pinError.value = ''
   step.value = 3
 }
@@ -99,12 +185,61 @@ async function doReset() {
           </RouterLink>
         </form>
 
-        <!-- Step 2: PIN -->
-        <form v-else-if="step === 2" @submit.prevent="doVerifyPin" class="flex flex-col gap-4">
-          <p class="text-sm text-ink-muted text-center">กรอก PIN 6 หลักที่แสดงในการแจ้งเตือนสำหรับ <b>{{ email }}</b></p>
-          <BaseInput label="PIN 6 หลัก" v-model="pin" placeholder="000000" maxlength="6" :error="pinError" required class="text-center font-mono text-lg tracking-widest" />
-          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ยืนยัน PIN →</BaseButton>
-          <button type="button" @click="step = 1" class="text-center text-xs text-ink-muted hover:text-ink">
+        <!-- Step 2: PIN (6 separate boxes) -->
+        <form v-else-if="step === 2" @submit.prevent="doVerifyPin" class="flex flex-col gap-5">
+          <div class="text-center">
+            <p class="text-sm text-ink-muted">
+              กรอก PIN 6 หลักที่แสดงในการแจ้งเตือนสำหรับ <b class="text-ink">{{ email }}</b>
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              รหัสยืนยัน PIN 6 หลัก <span class="text-rose-500">*</span>
+            </label>
+            
+            <div class="flex items-center justify-center gap-2 sm:gap-2.5 w-full" @paste="onPaste">
+              <input
+                v-for="(_, idx) in pinDigits"
+                :key="idx"
+                :ref="el => setPinInputRef(el, idx)"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="1"
+                :value="pinDigits[idx]"
+                @input="onDigitInput($event, idx)"
+                @keydown="onDigitKeyDown($event, idx)"
+                @focus="$event.target.select()"
+                :class="[
+                  'w-11 sm:w-12 h-13 sm:h-14 text-center text-xl sm:text-2xl font-bold font-mono rounded-xl border transition-all outline-none',
+                  pinError
+                    ? 'border-rose-400 bg-rose-50/50 text-rose-700 focus:border-rose-500 focus:ring-4 focus:ring-rose-100'
+                    : pinDigits[idx]
+                      ? 'border-indigo-600 bg-indigo-50/40 text-indigo-700 ring-2 ring-indigo-600/20'
+                      : 'border-slate-200 bg-slate-50/80 text-ink focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100'
+                ]"
+              />
+            </div>
+
+            <p v-if="pinError" class="text-xs text-rose-500 mt-2.5 font-medium flex items-center gap-1">
+              ⚠️ {{ pinError }}
+            </p>
+          </div>
+
+          <div class="p-3 bg-amber-50/80 rounded-xl border border-amber-100 text-xs text-amber-800 flex items-center justify-between">
+            <span>ไม่ได้รับรหัส?</span>
+            <button
+              type="button"
+              @click="doSendPin"
+              class="font-semibold text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
+            >
+              ส่งรหัสอีกครั้ง
+            </button>
+          </div>
+
+          <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-1">ยืนยัน PIN →</BaseButton>
+          <button type="button" @click="step = 1" class="text-center text-xs text-ink-muted hover:text-ink cursor-pointer">
             เปลี่ยนอีเมล
           </button>
         </form>

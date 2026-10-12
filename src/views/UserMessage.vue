@@ -54,9 +54,14 @@ const userThreads = computed(() => {
   const bookings = (db['adoga_bookings'] || []).filter(b => b.userId === userId)
   const bookedHotelIds = bookings.map(b => b.hotelId)
   const messagedHotelIds = allMessages.filter(m => m.userId === userId).map(m => m.hotelId)
+  const queryHotelId = route.query.hotelId
   
-  // Combine unique hotel IDs
-  const allHotelIds = [...new Set([...bookedHotelIds, ...messagedHotelIds])]
+  // Combine unique hotel IDs including queryHotelId if valid
+  const allHotelIds = [...new Set([
+    ...bookedHotelIds,
+    ...messagedHotelIds,
+    ...(queryHotelId && (db['adoga_hotels'] || []).some(h => h.id === queryHotelId) ? [queryHotelId] : [])
+  ])]
   const hotels = (db['adoga_hotels'] || []).filter(h => allHotelIds.includes(h.id))
   
   let threads = hotels.map(h => {
@@ -65,18 +70,21 @@ const userThreads = computed(() => {
       .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
       
     const last = hotelMsgs[0]
-    const unreadCount = hotelMsgs.filter(m => m.sender === 'manager' && m.unread).length
+    const unreadCount = hotelMsgs.filter(m => (m.sender === 'manager' || m.sender === 'admin') && m.unread).length
     
     return {
       hotel: h,
-      lastMsg: last ? last.text : 'เริ่มสนทนากับที่พักเพื่อสอบถามข้อมูล',
+      lastMsg: last ? last.text : (h.id === 'H_ADMIN' ? 'ติดต่อฝ่ายบริการลูกค้าและแอดมิน' : 'เริ่มสนทนากับที่พักเพื่อสอบถามข้อมูล'),
       lastAt: last ? last.sentAt : null,
       unreadCount: unreadCount,
+      isAdmin: h.id === 'H_ADMIN'
     }
   })
 
-  // Sort by latest message date
+  // Sort by latest message date (Admin support pinned to top if recent or no messages)
   threads.sort((a, b) => {
+    if (a.isAdmin && !b.isAdmin && !a.lastAt) return -1
+    if (!a.isAdmin && b.isAdmin && !b.lastAt) return 1
     if (!a.lastAt) return 1
     if (!b.lastAt) return -1
     return new Date(b.lastAt) - new Date(a.lastAt)
@@ -100,7 +108,7 @@ function markAsRead(hotelId) {
   const allMessages = db['adoga_messages'] || []
   let updated = false
   const updatedMessages = allMessages.map(m => {
-    if (m.hotelId === hotelId && m.userId === session.value.userId && m.sender === 'manager' && m.unread) {
+    if (m.hotelId === hotelId && m.userId === session.value.userId && (m.sender === 'manager' || m.sender === 'admin') && m.unread) {
       updated = true
       return { ...m, unread: false }
     }
@@ -233,9 +241,14 @@ async function sendMsg() {
               <!-- Title, Message Snippet & Timestamp Info -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline justify-between mb-1 gap-2">
-                  <h4 class="font-semibold text-slate-900 text-sm sm:text-base truncate leading-snug">
-                    {{ item.hotel.name }}
-                  </h4>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <h4 class="font-semibold text-slate-900 text-sm sm:text-base truncate leading-snug">
+                      {{ item.hotel.name }}
+                    </h4>
+                    <span v-if="item.isAdmin" class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[10px] font-bold flex-shrink-0">
+                      แอดมิน
+                    </span>
+                  </div>
                   <span class="text-[11px] font-semibold text-slate-400 flex-shrink-0">
                     {{ formatMsgTime(item.lastAt) }}
                   </span>
@@ -265,7 +278,7 @@ async function sendMsg() {
           <div v-if="!selectedHotel" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
             <MessageCircle class="w-16 h-16 text-slate-300 mb-4" :stroke-width="1.5" />
             <p class="text-lg font-semibold text-slate-700 mb-1">เลือกการสนทนา</p>
-            <p class="text-sm text-slate-400">เลือกโรงแรมด้านซ้ายมือเพื่อเริ่มพูดคุยและสอบถามข้อมูลเพิ่มเติม</p>
+            <p class="text-sm text-slate-400">เลือกโรงแรมหรือศูนย์ช่วยเหลือด้านซ้ายมือเพื่อเริ่มพูดคุย</p>
           </div>
 
           <div v-else class="flex-1 flex flex-col min-h-0">
@@ -288,7 +301,12 @@ async function sendMsg() {
                   class="w-10 h-10 sm:w-11 sm:h-11 object-cover rounded-xl border border-slate-200 flex-shrink-0"
                 />
                 <div class="min-w-0">
-                  <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">{{ selectedHotel.name }}</h3>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-slate-900 text-sm sm:text-base leading-tight truncate">{{ selectedHotel.name }}</h3>
+                    <span v-if="selectedHotel.id === 'H_ADMIN'" class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex-shrink-0">
+                      ศูนย์ช่วยเหลือ Adoga
+                    </span>
+                  </div>
                   <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5 truncate">
                     <MapPin class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
                     <span class="truncate">{{ selectedHotel.location }}</span>
@@ -318,9 +336,15 @@ async function sendMsg() {
                     'max-w-[85%] sm:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs',
                     m.sender === 'user'
                       ? 'bg-blue-600 text-white rounded-br-xs font-medium shadow-blue-600/20'
-                      : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
+                      : m.sender === 'admin'
+                        ? 'bg-indigo-50 border border-indigo-200 text-slate-900 rounded-bl-xs shadow-indigo-100/50'
+                        : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs shadow-slate-200/50'
                   ]"
                 >
+                  <div v-if="m.sender === 'admin'" class="text-[11px] font-bold text-indigo-600 mb-1 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                    ฝ่ายบริการลูกค้า Adoga (Admin Support)
+                  </div>
                   {{ m.text }}
                 </div>
                 <span class="text-[10px] font-medium text-slate-500 mt-1 px-2 py-0.5 rounded-full bg-white/80 backdrop-blur-xs flex items-center gap-1 shadow-2xs">
