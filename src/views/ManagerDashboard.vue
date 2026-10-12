@@ -17,12 +17,69 @@ import BaseModal from '../components/common/BaseModal.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseInput from '../components/common/BaseInput.vue'
 import { RouterLink } from 'vue-router'
-import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search, BedDouble, Trash2 } from '@lucide/vue'
+import { LayoutDashboard, Hotel, Users, MessageCircle, TrendingUp, DollarSign, Calendar, Edit3, Archive, Plus, FileText, Search, BedDouble, Trash2, ChevronLeft, ChevronRight } from '@lucide/vue'
 
 const { session } = useSession()
 
 const myHotels = computed(() => (db['adoga_hotels'] || []).filter(h => h.managerId === session.value?.userId))
 const searchQuery = ref('')
+
+// Pagination state for Hotel Rooms table (hotelId -> currentPage)
+const hotelRoomPages = ref({})
+const roomPageSize = 10
+
+function getHotelAllRoomUnits(hotel) {
+  if (!hotel || !hotel.rooms) return []
+  const list = []
+  for (const room of hotel.rooms) {
+    if (!room.units) continue
+    for (const unit of room.units) {
+      list.push({
+        roomId: room.id,
+        roomType: room.type,
+        unitNo: unit.no,
+        status: unit.status,
+      })
+    }
+  }
+  return list
+}
+
+function getHotelRoomPage(hotelId) {
+  return hotelRoomPages.value[hotelId] || 1
+}
+
+function getTotalRoomPages(hotel) {
+  const total = getHotelAllRoomUnits(hotel).length
+  return Math.max(1, Math.ceil(total / roomPageSize))
+}
+
+function setHotelRoomPage(hotel, page) {
+  const total = getTotalRoomPages(hotel)
+  const target = Math.max(1, Math.min(page, total))
+  hotelRoomPages.value[hotel.id] = target
+}
+
+function getPaginatedRoomUnits(hotel) {
+  const allUnits = getHotelAllRoomUnits(hotel)
+  const page = getHotelRoomPage(hotel.id)
+  const start = (page - 1) * roomPageSize
+  return allUnits.slice(start, start + roomPageSize)
+}
+
+function getVisibleRoomPages(hotel) {
+  const total = getTotalRoomPages(hotel)
+  const current = getHotelRoomPage(hotel.id)
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, start + 4)
+  if (end - start < 4) {
+    start = Math.max(1, end - 4)
+  }
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
 
 const filteredHotels = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -543,7 +600,15 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
 
               <!-- Rooms table -->
               <div class="mt-4">
-                <h4 class="font-medium text-sm text-ink mb-2">รายการห้องพัก</h4>
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="font-medium text-sm text-ink">รายการห้องพัก</h4>
+                  <span class="text-xs text-ink-muted">
+                    ทั้งหมด {{ getHotelAllRoomUnits(hotel).length }} ห้อง
+                    <span v-if="getHotelAllRoomUnits(hotel).length > roomPageSize" class="text-indigo-600 font-medium ml-1">
+                      (หน้า {{ getHotelRoomPage(hotel.id) }}/{{ getTotalRoomPages(hotel) }})
+                    </span>
+                  </span>
+                </div>
                 <div class="overflow-x-auto rounded-xl border border-line">
                   <table class="w-full text-sm">
                     <thead class="bg-canvas">
@@ -555,34 +620,94 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
                       </tr>
                     </thead>
                     <tbody>
-                      <template v-for="room in hotel.rooms" :key="room.id">
-                        <tr v-for="unit in room.units" :key="unit.no" class="border-b border-line/50 hover:bg-slate-50">
-                          <td class="py-3 px-4 text-ink font-medium">{{ room.type }}</td>
-                          <td class="py-3 px-4 text-ink-muted">ห้อง {{ unit.no }}</td>
-                          <td class="py-3 px-4">
-                            <StatusBadge entity="room" :value="unit.status" size="sm" />
-                          </td>
-                          <td class="py-3 px-4">
-                            <div class="flex gap-2">
-                              <BaseButton
-                                v-if="unit.status === 'available'"
-                                @click="setUnitMaintenance(hotel.id, room.id, unit.no)"
-                                variant="outline" size="sm"
-                              >ปิดปรับปรุง</BaseButton>
-                              <BaseButton
-                                v-if="unit.status === 'maintenance'"
-                                @click="setUnitAvailable(hotel.id, room.id, unit.no)"
-                                variant="secondary" size="sm"
-                              >เปิดพร้อมใช้งาน</BaseButton>
-                              <span v-if="unit.status === 'booked'" class="text-xs text-indigo-600 font-medium py-1">
-                                มีผู้เข้าพัก/จองแล้ว
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      </template>
+                      <tr v-if="!getPaginatedRoomUnits(hotel).length">
+                        <td colspan="4" class="py-8 text-center text-ink-muted text-xs">
+                          ยังไม่มีข้อมูลห้องพักในระบบ
+                        </td>
+                      </tr>
+                      <tr
+                        v-for="item in getPaginatedRoomUnits(hotel)"
+                        :key="item.roomId + '-' + item.unitNo"
+                        class="border-b border-line/50 hover:bg-slate-50 transition-colors"
+                      >
+                        <td class="py-3 px-4 text-ink font-medium">{{ item.roomType }}</td>
+                        <td class="py-3 px-4 text-ink-muted">ห้อง {{ item.unitNo }}</td>
+                        <td class="py-3 px-4">
+                          <StatusBadge entity="room" :value="item.status" size="sm" />
+                        </td>
+                        <td class="py-3 px-4">
+                          <div class="flex gap-2">
+                            <BaseButton
+                              v-if="item.status === 'available'"
+                              @click="setUnitMaintenance(hotel.id, item.roomId, item.unitNo)"
+                              variant="outline" size="sm"
+                            >ปิดปรับปรุง</BaseButton>
+                            <BaseButton
+                              v-if="item.status === 'maintenance'"
+                              @click="setUnitAvailable(hotel.id, item.roomId, item.unitNo)"
+                              variant="secondary" size="sm"
+                            >เปิดพร้อมใช้งาน</BaseButton>
+                            <span v-if="item.status === 'booked'" class="text-xs text-indigo-600 font-medium py-1">
+                              มีผู้เข้าพัก/จองแล้ว
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
+
+                  <!-- Pagination Footer for this Hotel's rooms (> 10 items) -->
+                  <div
+                    v-if="getHotelAllRoomUnits(hotel).length > roomPageSize"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-slate-50/60 border-t border-line"
+                  >
+                    <p class="text-xs text-ink-muted">
+                      แสดง
+                      <strong>{{ ((getHotelRoomPage(hotel.id) - 1) * roomPageSize) + 1 }}</strong> -
+                      <strong>{{ Math.min(getHotelRoomPage(hotel.id) * roomPageSize, getHotelAllRoomUnits(hotel).length) }}</strong>
+                      จากทั้งหมด
+                      <strong>{{ getHotelAllRoomUnits(hotel).length }}</strong> ห้อง
+                    </p>
+
+                    <div class="flex items-center gap-1.5">
+                      <!-- Previous Page Button -->
+                      <button
+                        @click="setHotelRoomPage(hotel, getHotelRoomPage(hotel.id) - 1)"
+                        :disabled="getHotelRoomPage(hotel.id) === 1"
+                        class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        title="หน้าก่อนหน้า"
+                        aria-label="หน้าก่อนหน้า"
+                      >
+                        <ChevronLeft class="w-4 h-4" />
+                      </button>
+
+                      <!-- Page Numbers -->
+                      <button
+                        v-for="p in getVisibleRoomPages(hotel)"
+                        :key="p"
+                        @click="setHotelRoomPage(hotel, p)"
+                        :class="[
+                          'px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
+                          getHotelRoomPage(hotel.id) === p
+                            ? 'bg-indigo-600 text-white shadow-2xs'
+                            : 'bg-white border border-line text-slate-600 hover:bg-slate-100'
+                        ]"
+                      >
+                        {{ p }}
+                      </button>
+
+                      <!-- Next Page Button -->
+                      <button
+                        @click="setHotelRoomPage(hotel, getHotelRoomPage(hotel.id) + 1)"
+                        :disabled="getHotelRoomPage(hotel.id) === getTotalRoomPages(hotel)"
+                        class="p-1.5 rounded-lg border border-line bg-white text-ink-muted hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        title="หน้าถัดไป"
+                        aria-label="หน้าถัดไป"
+                      >
+                        <ChevronRight class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

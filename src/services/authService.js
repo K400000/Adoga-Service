@@ -54,8 +54,27 @@ export function login(email, password) {
 
 export function loginWithGoogleEmail(email) {
   const users = db['adoga_users'] || []
-  const user = users.find(u => u.email === email.trim().toLowerCase())
-  if (!user) return { ok: false, message: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียนก่อนใช้งาน' }
+  let user = users.find(u => u.email === email.trim().toLowerCase())
+  if (!user) {
+    const cleanEmail = email.trim().toLowerCase()
+    const emailPrefix = cleanEmail.split('@')[0] || 'User'
+    const formattedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    user = {
+      id: nextId('user'),
+      email: cleanEmail,
+      password: '',
+      role: 'user',
+      firstName: formattedName,
+      lastName: '',
+      nickname: formattedName,
+      phone: '',
+      birthdate: '',
+      provider: 'google',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    }
+    db['adoga_users'] = [...users, user]
+  }
   if (user.disabled || user.status === 'disabled') {
     return { ok: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งานในระบบ' }
   }

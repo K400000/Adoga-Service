@@ -8,6 +8,9 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   title: String,
   size: { type: String, default: 'md' }, // sm, md, lg, xl, 2xl, 3xl
+  rounded: { type: String, default: 'rounded-none' }, // 0 border curve by default
+  hideClose: { type: Boolean, default: false },
+  noPadding: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'update:modelValue'])
 
@@ -45,11 +48,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-ink/50 backdrop-blur-xs" @click="handleClose" />
 
-        <!-- Panel -->
+        <!-- Panel (0 border curve) -->
         <div
           :class="[
             'relative w-full bg-white shadow-2xl z-10',
-            'rounded-2xl sm:rounded-3xl',
+            props.rounded || 'rounded-none',
             'flex flex-col',
             'max-h-[85vh] sm:max-h-[88vh]',
             'overflow-hidden',
@@ -63,8 +66,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
           >
             <h3 class="text-base sm:text-lg font-semibold font-display text-ink pr-4 truncate">{{ title }}</h3>
             <button
+              v-if="!hideClose"
               @click="handleClose"
-              class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer flex-shrink-0"
+              class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer flex-shrink-0"
               aria-label="ปิด"
             >
               <X class="w-5 h-5" :stroke-width="1.75" />
@@ -73,16 +77,21 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 
           <!-- Close button if no title provided -->
           <button
-            v-else
+            v-else-if="!hideClose"
             @click="handleClose"
-            class="absolute top-3.5 right-3.5 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+            class="absolute top-3.5 right-3.5 z-20 w-8 h-8 flex items-center justify-center rounded-none bg-slate-100/90 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
             aria-label="ปิด"
           >
             <X class="w-4 h-4" :stroke-width="2" />
           </button>
 
           <!-- Body with Vertical Scrolling -->
-          <div class="overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 flex-1 min-h-0 modal-scroll">
+          <div
+            :class="[
+              'overflow-y-auto flex-1 min-h-0 modal-scroll',
+              noPadding ? 'p-0' : 'px-5 sm:px-6 py-4 sm:py-5'
+            ]"
+          >
             <slot />
           </div>
 

@@ -31,29 +31,36 @@ const showCustomGoogleInput = ref(false)
 const AVATAR_COLORS = ['bg-amber-600', 'bg-emerald-600', 'bg-indigo-600', 'bg-rose-600', 'bg-cyan-600', 'bg-purple-600']
 
 const googleAccounts = computed(() => {
-  const users = db['adoga_users'] || []
-  
-  const list = [
-    { email: 'user@gmail.com', name: 'Somchai Rakthai', role: 'user', desc: 'ผู้ใช้งานทั่วไป', color: 'bg-amber-600' },
-    { email: 'hotel@domain.com', name: 'Somchai (Chonburi Sea View)', role: 'manager', desc: 'Manager', color: 'bg-rose-700' },
-    { email: 'admin@adoga.com', name: 'Adoga System Admin', role: 'admin', desc: 'Admin', color: 'bg-indigo-700' },
-  ]
-  
-  users.forEach((u, idx) => {
-    if (!list.some(item => item.email.toLowerCase() === u.email.toLowerCase())) {
-      const hotel = (db['adoga_hotels'] || []).find(h => h.managerId === u.id)
-      list.push({
-        email: u.email,
-        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.nickname || u.email,
-        role: u.role,
-        desc: hotel ? hotel.name : (u.role === 'manager' ? 'Manager' : 'User'),
-        disabled: u.disabled || u.status === 'disabled',
-        color: AVATAR_COLORS[idx % AVATAR_COLORS.length]
-      })
+  const users = (db['adoga_users'] && db['adoga_users'].length > 0)
+    ? db['adoga_users']
+    : [
+        { email: 'user@gmail.com', firstName: 'John', lastName: 'Doe', role: 'user' },
+        { email: 'mary@gmail.com', firstName: 'Mary', lastName: 'Smith', role: 'user' },
+        { email: 'hotel@domain.com', firstName: 'Somchai', lastName: 'Rakthai', role: 'manager' },
+        { email: 'admin@adoga.com', firstName: 'Admin', lastName: 'Adoga', role: 'admin' },
+      ]
+
+  return users.map((u, idx) => {
+    const hotel = (db['adoga_hotels'] || []).find(h => h.managerId === u.id)
+    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim()
+    let desc = 'ผู้ใช้งานทั่วไป (User)'
+    if (hotel) {
+      desc = hotel.name
+    } else if (u.role === 'manager') {
+      desc = 'ผู้จัดการ (Manager)'
+    } else if (u.role === 'admin') {
+      desc = 'ผู้ดูแลระบบ (Admin)'
+    }
+
+    return {
+      email: u.email,
+      name: fullName || u.nickname || u.email,
+      role: u.role,
+      desc,
+      disabled: Boolean(u.disabled || u.status === 'disabled'),
+      color: AVATAR_COLORS[idx % AVATAR_COLORS.length]
     }
   })
-  
-  return list
 })
 
 function openGoogleModal() {
@@ -68,10 +75,15 @@ async function selectGoogleAccount(email) {
     googleError.value = 'กรุณากรอกอีเมล'
     return
   }
+  const cleanEmail = email.trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    googleError.value = 'รูปแบบอีเมลไม่ถูกต้อง'
+    return
+  }
   googleError.value = ''
   loading.value = true
   await new Promise(r => setTimeout(r, 300))
-  const res = loginWithGoogleEmail(email.trim())
+  const res = loginWithGoogleEmail(cleanEmail)
   loading.value = false
   if (!res.ok) {
     googleError.value = res.message
@@ -79,7 +91,7 @@ async function selectGoogleAccount(email) {
     return
   }
   showGoogleModal.value = false
-  showToast(`เข้าสู่ระบบด้วย Google สำเร็จ (${email})`, 'success')
+  showToast(`เข้าสู่ระบบด้วย Google สำเร็จ (${cleanEmail})`, 'success')
   const role = res.user.role
   if (redirectTo.value) {
     router.push(redirectTo.value)
@@ -451,8 +463,16 @@ const ROLES = [
     </footer>
 
     <!-- GOOGLE ACCOUNT CHOOSER MODAL (Exact match to Google OAuth specs) -->
-    <BaseModal :open="showGoogleModal" @close="showGoogleModal = false" title="" size="md">
-      <div class="bg-white rounded-2xl overflow-hidden -m-6">
+    <BaseModal
+      :open="showGoogleModal"
+      @close="showGoogleModal = false"
+      title=""
+      size="md"
+      :hide-close="true"
+      :no-padding="true"
+      rounded="rounded-none"
+    >
+      <div class="bg-white rounded-none overflow-hidden">
         <!-- Top Google Header Bar -->
         <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
           <div class="flex items-center gap-2.5">
@@ -467,7 +487,7 @@ const ROLES = [
 
           <button
             @click="showGoogleModal = false"
-            class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X class="w-4 h-4" />
@@ -483,7 +503,7 @@ const ROLES = [
           </p>
 
           <!-- Alert Error if access disabled -->
-          <div v-if="googleError" class="w-full mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center shadow-xs">
+          <div v-if="googleError" class="w-full mb-5 p-3 rounded-none bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center shadow-xs">
             {{ googleError }}
           </div>
 
@@ -507,7 +527,8 @@ const ROLES = [
                 </div>
               </div>
               
-              <span class="text-xs text-slate-500 font-normal ml-3 flex-shrink-0">Signed out</span>
+              <span v-if="acc.disabled" class="text-xs text-rose-600 font-medium ml-3 flex-shrink-0">ระงับสิทธิ์</span>
+              <span v-else class="text-xs text-slate-500 font-normal ml-3 flex-shrink-0">Signed out</span>
             </button>
 
             <!-- Use another account option -->
@@ -529,13 +550,13 @@ const ROLES = [
                   v-model="customGoogleEmail"
                   type="email"
                   placeholder="Enter Gmail (e.g. user@gmail.com)"
-                  class="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-blue-600"
+                  class="flex-1 h-9 px-3 rounded-none border border-slate-300 text-xs focus:outline-none focus:border-blue-600"
                   @keydown.enter="selectGoogleAccount(customGoogleEmail)"
                 />
                 <button
                   @click="selectGoogleAccount(customGoogleEmail)"
                   type="button"
-                  class="px-3.5 h-9 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                  class="px-3.5 h-9 rounded-none bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   Sign in
                 </button>

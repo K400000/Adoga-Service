@@ -1,12 +1,14 @@
 <script setup>
 // src/views/UserMessage.vue
-import { computed, ref, nextTick, onMounted } from 'vue'
+import { computed, ref, nextTick, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import { Search, SlidersHorizontal, Send, MessageCircle, MapPin, CheckCheck, Building, ArrowLeft } from '@lucide/vue'
 
+const route = useRoute()
 const { session } = useSession()
 const selectedHotelId = ref(null)
 const searchQuery = ref('')
@@ -114,13 +116,16 @@ function selectThread(hotelId) {
   markAsRead(hotelId)
 }
 
-// Default select first thread on desktop
-onMounted(() => {
-  if (window.innerWidth >= 768 && userThreads.value.length > 0) {
-    selectedHotelId.value = userThreads.value[0].hotel.id
-    markAsRead(selectedHotelId.value)
-  }
-})
+function scrollToBottom(smooth = false) {
+  nextTick(() => {
+    if (msgContainer.value) {
+      msgContainer.value.scrollTo({
+        top: msgContainer.value.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      })
+    }
+  })
+}
 
 const selectedHotel = computed(() => {
   if (!selectedHotelId.value) return null
@@ -132,6 +137,27 @@ const currentMessages = computed(() => {
   return (db['adoga_messages'] || [])
     .filter(m => m.hotelId === selectedHotelId.value && m.userId === session.value.userId)
     .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
+})
+
+watch(selectedHotelId, () => {
+  scrollToBottom(false)
+})
+
+watch(() => currentMessages.value.length, () => {
+  scrollToBottom(true)
+})
+
+// Default select thread (from query or first available on desktop)
+onMounted(() => {
+  const queryHotelId = route.query.hotelId
+  if (queryHotelId && (db['adoga_hotels'] || []).some(h => h.id === queryHotelId)) {
+    selectedHotelId.value = queryHotelId
+    markAsRead(selectedHotelId.value)
+  } else if (window.innerWidth >= 768 && userThreads.value.length > 0) {
+    selectedHotelId.value = userThreads.value[0].hotel.id
+    markAsRead(selectedHotelId.value)
+  }
+  scrollToBottom(false)
 })
 
 async function sendMsg() {
@@ -147,10 +173,7 @@ async function sendMsg() {
   }
   db['adoga_messages'] = [...(db['adoga_messages'] || []), msg]
   newMsg.value = ''
-  await nextTick()
-  if (msgContainer.value) {
-    msgContainer.value.scrollTo({ top: msgContainer.value.scrollHeight, behavior: 'smooth' })
-  }
+  scrollToBottom(true)
 }
 </script>
 
@@ -165,10 +188,10 @@ async function sendMsg() {
       <div class="bg-white rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row h-[calc(100vh-180px)] min-h-[500px] md:h-[720px] shadow-sm">
         
         <!-- Sidebar: Conversation List -->
-        <div :class="['w-full md:w-80 lg:w-96 border-r border-line flex-col bg-slate-50/40', selectedHotelId ? 'hidden md:flex' : 'flex']">
+        <div :class="['w-full md:w-80 lg:w-96 border-r border-line flex-col bg-slate-50/40 min-h-0', selectedHotelId ? 'hidden md:flex' : 'flex']">
           
           <!-- Top Search Header Box -->
-          <div class="p-4 border-b border-line bg-white">
+          <div class="p-4 border-b border-line bg-white flex-shrink-0">
             <div class="bg-slate-100 hover:bg-slate-200/70 transition-colors rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 border border-slate-200/70">
               <Search class="w-5 h-5 text-slate-400 flex-shrink-0" :stroke-width="2" />
               <input
@@ -182,7 +205,7 @@ async function sendMsg() {
           </div>
 
           <!-- Conversation Threads List -->
-          <div class="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-none">
+          <div class="flex-1 overflow-y-auto min-h-0 p-3 space-y-1.5 chat-scroll">
             <div v-if="!userThreads.length" class="py-12 text-center text-sm text-slate-400">
               <Building class="w-10 h-10 mx-auto text-slate-300 mb-2" />
               <p>ไม่พบรายการการสนทนา</p>
@@ -245,9 +268,9 @@ async function sendMsg() {
             <p class="text-sm text-slate-400">เลือกโรงแรมด้านซ้ายมือเพื่อเริ่มพูดคุยและสอบถามข้อมูลเพิ่มเติม</p>
           </div>
 
-          <template v-else>
+          <div v-else class="flex-1 flex flex-col min-h-0">
             <!-- Chat Room Top Bar Header -->
-            <div class="p-3.5 sm:p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md">
+            <div class="p-3.5 sm:p-4 border-b border-line flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
               <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <!-- Mobile Back Button -->
                 <button
@@ -279,7 +302,7 @@ async function sendMsg() {
             <!-- Messages Message Container Stream with background-message.png -->
             <div
               ref="msgContainer"
-              class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative bg-cover bg-center"
+              class="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-4 relative bg-cover bg-center chat-scroll"
               style="background-image: url('/docs/ui-specs/background-message.png');"
             >
               <!-- Soft Overlay for Contrast -->
@@ -308,7 +331,7 @@ async function sendMsg() {
             </div>
 
             <!-- Bottom Input Bar -->
-            <div class="p-3 sm:p-4 border-t border-line bg-white flex items-center gap-2 sm:gap-3">
+            <div class="p-3 sm:p-4 border-t border-line bg-white flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <input
                 v-model="newMsg"
                 @keydown.enter.prevent="sendMsg"
@@ -326,7 +349,7 @@ async function sendMsg() {
                 <Send class="w-4 h-4" :stroke-width="2" />
               </button>
             </div>
-          </template>
+          </div>
         </div>
 
       </div>
@@ -335,4 +358,24 @@ async function sendMsg() {
     <Footer />
   </div>
 </template>
+
+<style scoped>
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+.chat-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</style>
 

@@ -12,6 +12,8 @@ import StatusBadge from '../components/common/StatusBadge.vue'
 import StatusStepper from '../components/common/StatusStepper.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
+import { Copy, Check, Building2 } from '@lucide/vue'
+import { showToast } from '../utils/toast.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +37,16 @@ const paymentMethod = ref('QR')
 const simulateFail = ref(false)
 const payLoading = ref(false)
 const showPayModal = ref(false)
+const copied = ref(false)
+
+function copyAccountNo(accNo = '045-8-91234-5') {
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard.writeText(accNo.replace(/-/g, ''))
+  }
+  copied.value = true
+  showToast('คัดลอกเลขที่บัญชีเรียบร้อยแล้ว', 'success', 2500)
+  setTimeout(() => { copied.value = false }, 2500)
+}
 
 // Countdown
 const countdownText = ref('')
@@ -227,8 +239,74 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
               </div>
 
               <!-- Payment display -->
-              <div class="p-6 rounded-xl bg-canvas border border-line text-center mb-4">
-                <p class="text-sm text-ink-muted mb-2">{{ booking.paymentMethod === 'QR' ? 'QR PromptPay' : 'โอนเงิน' }}</p>
+              <!-- Bank Transfer (โอนเงิน) display with mock bank account details -->
+              <div v-if="booking.paymentMethod === 'BANK_TRANSFER'" class="mb-4">
+                <div class="bg-gradient-to-br from-emerald-800 to-teal-950 text-white rounded-[4px] p-6 shadow-md border border-emerald-700/50 relative overflow-hidden">
+                  <!-- Decorative background circle -->
+                  <div class="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-emerald-500/10 pointer-events-none"></div>
+
+                  <div class="flex items-center justify-between pb-4 border-b border-emerald-600/40">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-9 h-9 rounded-[4px] bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
+                        <Building2 class="w-5 h-5 text-emerald-300" />
+                      </div>
+                      <div>
+                        <p class="text-xs text-emerald-300 font-medium">โอนเงินผ่านบัญชีธนาคาร</p>
+                        <p class="text-sm font-semibold text-white">ธนาคารกสิกรไทย (KBANK)</p>
+                      </div>
+                    </div>
+                    <span class="text-[11px] px-2.5 py-1 rounded-[4px] bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 font-medium">
+                      ออมทรัพย์
+                    </span>
+                  </div>
+
+                  <div class="py-5 space-y-4">
+                    <div>
+                      <p class="text-xs text-emerald-300 mb-1.5 font-medium">เลขที่บัญชี</p>
+                      <div class="flex items-center justify-between bg-black/30 px-4 py-3 rounded-[4px] border border-emerald-500/30">
+                        <span class="font-mono text-xl sm:text-2xl font-bold tracking-wider text-emerald-100 select-all">
+                          045-8-91234-5
+                        </span>
+                        <button
+                          type="button"
+                          @click="copyAccountNo('045-8-91234-5')"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors cursor-pointer shadow-xs"
+                        >
+                          <Check v-if="copied" class="w-3.5 h-3.5" />
+                          <Copy v-else class="w-3.5 h-3.5" />
+                          <span>{{ copied ? 'คัดลอกแล้ว' : 'คัดลอก' }}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between text-xs text-emerald-200 gap-2 pt-1">
+                      <div>
+                        <span class="text-emerald-400">ชื่อบัญชี:</span>
+                        <span class="font-medium text-white ml-1.5">บจก. อะโดกา เซอร์วิส (Adoga Service Co., Ltd.)</span>
+                      </div>
+                      <div>
+                        <span class="text-emerald-400">สาขา:</span>
+                        <span class="font-medium text-white ml-1.5">สาขาเซ็นทรัล ชลบุรี</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pt-4 border-t border-emerald-600/40 flex items-center justify-between">
+                    <span class="text-xs text-emerald-300">ยอดเงินที่ต้องโอน</span>
+                    <span class="font-display font-bold text-2xl text-emerald-100 tabular-nums">
+                      {{ formatPrice(booking.totalPrice) }}
+                    </span>
+                  </div>
+                </div>
+
+                <p class="text-xs text-ink-muted text-center mt-2.5">
+                  💡 กรุณาโอนเงินให้ตรงกับยอดที่ระบุ และตรวจสอบชื่อบัญชีก่อนกดยืนยันชำระเงิน
+                </p>
+              </div>
+
+              <!-- QR Code Payment display (for QR PromptPay) -->
+              <div v-else class="p-6 rounded-xl bg-canvas border border-line text-center mb-4">
+                <p class="text-sm text-ink-muted mb-2">QR PromptPay</p>
                 <div class="w-40 h-40 mx-auto bg-white border border-line rounded-xl flex items-center justify-center text-ink-muted text-xs">
                   [QR Code Mock]
                 </div>
