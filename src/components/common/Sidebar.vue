@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { logout, getCurrentUser } from '../../services/authService.js'
 import {
-  Hotel, LayoutDashboard, Users, MessageCircle, CheckSquare, Settings, LogOut, ShieldCheck, Menu, X
+  Hotel, LayoutDashboard, Users, MessageCircle, CheckSquare, Settings, LogOut, ShieldCheck, Menu, X, FileText
 } from '@lucide/vue'
 
 const props = defineProps({
@@ -46,6 +46,7 @@ const links = computed(() => {
   return [
     { to: '/manager', label: 'ภาพรวม & แดชบอร์ด', icon: LayoutDashboard },
     { to: '/manager/guests', label: 'จัดการลูกค้า', icon: Users },
+    { to: '/manager/refunds', label: 'ใบขอคืนเงิน', icon: FileText },
     { to: '/manager/messages', label: 'ข้อความ & แชท', icon: MessageCircle },
   ]
 })

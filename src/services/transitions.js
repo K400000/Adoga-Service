@@ -117,6 +117,30 @@ export function checkOut(bookingId) {
   saveBookings(bookings)
 }
 
+export function revertToCheckIn(bookingId) {
+  const bookings = [...(db['adoga_bookings'] || [])]
+  const idx = bookings.findIndex(b => b.id === bookingId)
+  if (idx === -1) throw new Error('Booking not found')
+  const b = bookings[idx]
+  bookings[idx] = { ...bookings[idx], status: 'confirmed', checkedOutAt: null }
+  if (b.hotelId && b.roomId && b.roomNo) {
+    updateUnit(b.hotelId, b.roomId, b.roomNo, 'booked')
+  }
+  saveBookings(bookings)
+}
+
+export function revertToWaiting(bookingId) {
+  const bookings = [...(db['adoga_bookings'] || [])]
+  const idx = bookings.findIndex(b => b.id === bookingId)
+  if (idx === -1) throw new Error('Booking not found')
+  const b = bookings[idx]
+  bookings[idx] = { ...bookings[idx], status: 'confirmed', checkedInAt: null, checkedOutAt: null }
+  if (b.hotelId && b.roomId && b.roomNo) {
+    updateUnit(b.hotelId, b.roomId, b.roomNo, 'booked')
+  }
+  saveBookings(bookings)
+}
+
 export function requestRefund({ bookingId, userId, hotelId, amount, reason }) {
   const id = 'RF' + Date.now()
   const refund = { id, bookingId, userId, hotelId, amount, reason, status: 'submitted', rejectReason: null, createdAt: new Date().toISOString() }

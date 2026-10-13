@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import {
-  approveRefund, rejectRefund, startReview,
   suspendHotel, activateHotel,
   setUnitMaintenance, setUnitAvailable,
   createHotel, updateHotel
@@ -103,49 +102,6 @@ const revenue = computed(() => {
 
 const bookingsCount = computed(() => allBookings.value.filter(b => myHotelIds.value.includes(b.hotelId)).length)
 const myRefunds = computed(() => allRefunds.value.filter(r => myHotelIds.value.includes(r.hotelId)))
-
-// Refund Detail Modal
-const showDetailModal = ref(false)
-const selectedRefund = ref(null)
-
-function openDetailModal(refund) {
-  selectedRefund.value = refund
-  showDetailModal.value = true
-}
-
-function doApproveFromModal(id) {
-  doApprove(id)
-  showDetailModal.value = false
-}
-
-function openRejectFromModal(id) {
-  showDetailModal.value = false
-  openReject(id)
-}
-
-// Refund Reject modal
-const showRejectModal = ref(false)
-const rejectId = ref('')
-const rejectReason = ref('')
-
-function doStartReview(id) {
-  startReview(id)
-  showToast('เริ่มการตรวจสอบคำขอคืนเงินแล้ว', 'info')
-}
-function doApprove(id) {
-  approveRefund(id)
-  showToast('อนุมัติการคืนเงินเรียบร้อยแล้ว', 'success')
-}
-function openReject(id) {
-  rejectId.value = id
-  rejectReason.value = ''
-  showRejectModal.value = true
-}
-function doReject() {
-  rejectRefund(rejectId.value, rejectReason.value)
-  showRejectModal.value = false
-  showToast('ปฏิเสธคำขอคืนเงินแล้ว', 'info')
-}
 
 // Hotel Form Modal
 const showHotelModal = ref(false)
@@ -436,9 +392,9 @@ function doActivate(hotelId) {
 
 const stats = computed(() => [
   { label: 'รายได้รวม', value: formatPrice(revenue.value), icon: DollarSign, color: 'text-emerald-600 bg-emerald-50' },
-  { label: 'การจองทั้งหมด', value: bookingsCount.value, icon: Calendar, color: 'text-indigo-600 bg-indigo-50' },
+  { label: 'การจองทั้งหมด', value: bookingsCount.value, icon: Calendar, color: 'text-indigo-600 bg-indigo-50', to: '/manager/guests' },
   { label: 'โรงแรมของฉัน', value: myHotels.value.length, icon: Hotel, color: 'text-amber-600 bg-amber-50' },
-  { label: 'ใบขอคืนเงิน', value: myRefunds.value.length, icon: TrendingUp, color: 'text-rose-600 bg-rose-50' },
+  { label: 'ใบขอคืนเงิน', value: myRefunds.value.length, icon: TrendingUp, color: 'text-rose-600 bg-rose-50', to: '/manager/refunds' },
 ])
 
 const hotelStatusDesc = {
@@ -462,20 +418,34 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
       <div class="mx-auto max-w-[1200px] px-4 md:px-8 py-8">
         <div class="flex items-center justify-between mb-8">
           <h1 class="font-display font-semibold text-2xl text-ink">ภาพรวม & แดชบอร์ด</h1>
-          <BaseButton @click="openAddHotel" variant="primary" size="md">
+          <BaseButton @click="openAddHotel" variant="secondary" size="md">
             <Plus class="w-4 h-4 mr-1" /> เพิ่มโรงแรม
           </BaseButton>
         </div>
 
         <!-- Stats -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div v-for="stat in stats" :key="stat.label" class="bg-white rounded-2xl border border-line p-4 md:p-6">
-            <div :class="['w-10 h-10 rounded-xl flex items-center justify-center mb-3', stat.color]">
-              <component :is="stat.icon" class="w-5 h-5" :stroke-width="1.75" />
+          <component
+            :is="stat.to ? RouterLink : 'div'"
+            v-for="stat in stats"
+            :key="stat.label"
+            :to="stat.to"
+            :class="[
+              'bg-white rounded-2xl border border-line p-4 md:p-6 transition-all block',
+              stat.to ? 'hover:border-indigo-300 hover:shadow-xs cursor-pointer group' : ''
+            ]"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div :class="['w-10 h-10 rounded-xl flex items-center justify-center', stat.color]">
+                <component :is="stat.icon" class="w-5 h-5" :stroke-width="1.75" />
+              </div>
+              <span v-if="stat.to" class="text-xs text-indigo-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                ดูหน้านี้ →
+              </span>
             </div>
             <p class="text-2xl font-display font-semibold text-ink tabular-nums">{{ stat.value }}</p>
             <p class="text-sm text-ink-muted mt-1">{{ stat.label }}</p>
-          </div>
+          </component>
         </div>
 
         <!-- Hotels -->
@@ -699,113 +669,8 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
           </div>
         </section>
 
-        <!-- Refunds -->
-        <section>
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-display font-semibold text-xl text-ink">ใบขอคืนเงิน</h2>
-            <span class="text-sm text-ink-muted">{{ myRefunds.length }} รายการ</span>
-          </div>
-          <div class="bg-white rounded-2xl border border-line overflow-hidden shadow-e1">
-            <table class="w-full text-sm">
-              <thead class="bg-canvas">
-                <tr>
-                  <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">รหัส</th>
-                  <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">ยอดคืน</th>
-                  <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">เหตุผล</th>
-                  <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">สถานะ</th>
-                  <th class="text-left py-3 px-4 text-xs font-medium text-ink-muted">การจัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!myRefunds.length">
-                  <td colspan="5" class="py-8 text-center text-ink-muted">ไม่มีใบขอคืนเงิน</td>
-                </tr>
-                <tr v-for="r in myRefunds" :key="r.id" class="border-t border-line hover:bg-slate-50">
-                  <td class="py-3 px-4 font-mono text-xs text-ink-muted">{{ r.id }}</td>
-                  <td class="py-3 px-4 font-display font-semibold text-ink tabular-nums">{{ formatPrice(r.amount) }}</td>
-                  <td class="py-3 px-4 text-ink max-w-xs truncate">{{ r.reason }}</td>
-                  <td class="py-3 px-4"><StatusBadge entity="refund" :value="r.status" size="sm" /></td>
-                  <td class="py-3 px-4">
-                    <div class="flex flex-wrap gap-2 items-center">
-                      <BaseButton @click="openDetailModal(r)" variant="ghost" size="sm">
-                        <FileText class="w-3.5 h-3.5 mr-1" /> อ่านรายละเอียด
-                      </BaseButton>
-                      <BaseButton v-if="r.status === 'submitted'" @click="doStartReview(r.id)" variant="outline" size="sm">ตรวจสอบ</BaseButton>
-                      <BaseButton v-if="['submitted', 'reviewing'].includes(r.status)" @click="doApprove(r.id)" variant="secondary" size="sm">อนุมัติ</BaseButton>
-                      <BaseButton v-if="['submitted', 'reviewing'].includes(r.status)" @click="openReject(r.id)" variant="danger" size="sm">ปฏิเสธ</BaseButton>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
     </div>
-
-    <!-- Refund Detail Modal -->
-    <BaseModal :open="showDetailModal" @close="showDetailModal = false" title="รายละเอียดใบขอคืนเงิน">
-      <div v-if="selectedRefund" class="flex flex-col gap-4">
-        <div class="bg-slate-50 p-4 rounded-xl border border-line space-y-2.5">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-ink-muted">รหัสใบขอคืนเงิน:</span>
-            <span class="font-mono font-bold text-indigo-600">{{ selectedRefund.id }}</span>
-          </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-ink-muted">รหัสการจอง:</span>
-            <span class="font-mono font-semibold text-ink">{{ selectedRefund.bookingId }}</span>
-          </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-ink-muted">สถานะ:</span>
-            <StatusBadge entity="refund" :value="selectedRefund.status" size="sm" />
-          </div>
-          <div class="flex justify-between items-baseline pt-2 border-t border-line/60">
-            <span class="text-sm font-semibold text-ink">ยอดเงินที่ขอคืน:</span>
-            <span class="font-display font-bold text-2xl text-indigo-600 tabular-nums">
-              {{ formatPrice(selectedRefund.amount) }}
-            </span>
-          </div>
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-500 uppercase">เหตุผลในการขอคืนเงิน:</label>
-          <div class="p-3.5 rounded-xl bg-white border border-line text-sm text-ink leading-relaxed font-medium">
-            {{ selectedRefund.reason }}
-          </div>
-        </div>
-
-        <div v-if="selectedRefund.rejectReason" class="space-y-1">
-          <label class="text-xs font-bold text-rose-500 uppercase">เหตุผลที่ปฏิเสธ:</label>
-          <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium">
-            {{ selectedRefund.rejectReason }}
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 justify-end pt-3 border-t border-line">
-          <BaseButton @click="showDetailModal = false" variant="ghost" size="md">ปิด</BaseButton>
-          <template v-if="['submitted', 'reviewing'].includes(selectedRefund.status)">
-            <BaseButton @click="openRejectFromModal(selectedRefund.id)" variant="danger" size="md">
-              ปฏิเสธ
-            </BaseButton>
-            <BaseButton @click="doApproveFromModal(selectedRefund.id)" variant="secondary" size="md">
-              อนุมัติ
-            </BaseButton>
-          </template>
-        </div>
-      </div>
-    </BaseModal>
-
-    <!-- Reject modal -->
-    <BaseModal :open="showRejectModal" @close="showRejectModal = false" title="ปฏิเสธการคืนเงิน">
-      <div class="flex flex-col gap-4">
-        <p class="text-sm text-ink-muted">กรุณาระบุเหตุผลในการปฏิเสธคำขอคืนเงิน</p>
-        <textarea v-model="rejectReason" rows="3" placeholder="ระบุเหตุผล..." class="w-full px-4 py-3 rounded-xl border border-line text-sm focus:outline-none focus:border-indigo-600 resize-none" />
-        <div class="flex gap-3 justify-end">
-          <BaseButton @click="showRejectModal = false" variant="ghost" size="md">ยกเลิก</BaseButton>
-          <BaseButton @click="doReject" variant="danger" size="md" :disabled="!rejectReason.trim()">ยืนยันปฏิเสธ</BaseButton>
-        </div>
-      </div>
-    </BaseModal>
 
     <!-- Hotel Add/Edit Modal with Tab Navigation & Room Management -->
     <BaseModal
@@ -1023,7 +888,7 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
 
             <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
               <BaseButton type="button" @click="isEditingRoom = false" variant="ghost" size="sm">ยกเลิก</BaseButton>
-              <BaseButton type="button" @click="saveRoomForm" variant="primary" size="sm">
+              <BaseButton type="button" @click="saveRoomForm" variant="secondary" size="sm">
                 {{ editingRoomIndex >= 0 ? 'บันทึกการแก้ไขห้อง' : 'บันทึกประเภทห้องพัก' }}
               </BaseButton>
             </div>

@@ -15,6 +15,7 @@ const UserMessage = () => import('../views/UserMessage.vue')
 const ManagerDashboard = () => import('../views/ManagerDashboard.vue')
 const ManagerMessage = () => import('../views/ManagerMessage.vue')
 const ManagerGuestList = () => import('../views/ManagerGuestList.vue')
+const ManagerRefunds = () => import('../views/ManagerRefunds.vue')
 const AdminDashboard = () => import('../views/AdminDashboard.vue')
 const AdminApproval = () => import('../views/AdminApproval.vue')
 const AdminPermissions = () => import('../views/AdminPermissions.vue')
@@ -33,6 +34,7 @@ const routes = [
   { path: '/manager', component: ManagerDashboard, meta: { access: 'manager' } },
   { path: '/manager/messages', component: ManagerMessage, meta: { access: 'manager' } },
   { path: '/manager/guests', component: ManagerGuestList, meta: { access: 'manager' } },
+  { path: '/manager/refunds', component: ManagerRefunds, meta: { access: 'manager' } },
   { path: '/admin', component: AdminDashboard, meta: { access: 'admin' } },
   { path: '/admin/approval', component: AdminApproval, meta: { access: 'admin' } },
   { path: '/admin/messages', component: ManagerMessage, meta: { access: 'admin' } },

@@ -3,14 +3,14 @@
 import { computed, ref } from 'vue'
 import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
-import { checkIn, checkOut } from '../services/transitions.js'
+import { checkIn, checkOut, revertToCheckIn, revertToWaiting } from '../services/transitions.js'
 import { formatDate } from '../utils/date.js'
 import { showToast } from '../utils/toast.js'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import Sidebar from '../components/common/Sidebar.vue'
 import {
-  Hotel, Users, MapPin, Search, ChevronLeft, ChevronRight,
+  Hotel, Users, MapPin, Search, ChevronLeft, ChevronRight, ChevronDown,
   BedDouble, Calendar, CheckCircle2, Clock, LogIn, Filter
 } from '@lucide/vue'
 
@@ -182,6 +182,49 @@ function doCheckIn(bookingId, guestName) {
 function doCheckOut(bookingId, roomNo) {
   checkOut(bookingId)
   showToast(`เช็คเอาท์ห้อง ${roomNo || ''} สำเร็จเรียบร้อย`, 'success')
+}
+
+function getBookingAction(b) {
+  if (b.checkedOutAt || b.status === 'completed') return 'check_out'
+  if (b.checkedInAt) return 'check_in'
+  return 'waiting'
+}
+
+function getActionBadgeClass(b) {
+  const action = getBookingAction(b)
+  if (action === 'check_out') {
+    return 'bg-emerald-50 text-emerald-800 border-emerald-200/90 hover:border-emerald-300'
+  }
+  if (action === 'check_in') {
+    return 'bg-indigo-50 text-indigo-800 border-indigo-200/90 hover:border-indigo-300'
+  }
+  return 'bg-amber-50 text-amber-900 border-amber-200/90 hover:border-amber-300'
+}
+
+function handleActionSelect(b, event) {
+  const newAction = event.target.value
+  const currentAction = getBookingAction(b)
+  if (newAction === currentAction) return
+
+  const guestName = getUserName(b.userId)
+
+  if (newAction === 'check_in') {
+    if (b.checkedOutAt) {
+      revertToCheckIn(b.id)
+    } else {
+      checkIn(b.id)
+    }
+    showToast(`เช็คอิน ${guestName} สำเร็จแล้ว`, 'success')
+  } else if (newAction === 'check_out') {
+    if (!b.checkedInAt) {
+      checkIn(b.id)
+    }
+    checkOut(b.id)
+    showToast(`เช็คเอาท์ห้อง ${b.roomNo || ''} สำเร็จเรียบร้อย`, 'success')
+  } else if (newAction === 'waiting') {
+    revertToWaiting(b.id)
+    showToast(`ปรับสถานะของ ${guestName} เป็น "รอ Check-in" เรียบร้อย`, 'info')
+  }
 }
 </script>
 
@@ -416,38 +459,23 @@ function doCheckOut(bookingId, roomNo) {
                       <StatusBadge entity="booking" :value="derivedStatus(b)" size="sm" />
                     </td>
 
-                    <!-- Actions Column -->
+                    <!-- Actions Column (Text Arrow Down / Dropdown Select) -->
                     <td class="py-3 px-4">
-                      <div class="flex items-center gap-2">
-                        <!-- Check-in Action -->
-                        <BaseButton
-                          v-if="!b.checkedInAt && b.status !== 'completed'"
-                          @click="doCheckIn(b.id, getUserName(b.userId))"
-                          variant="secondary"
-                          size="sm"
-                          class="shadow-2xs"
+                      <div class="relative inline-flex items-center">
+                        <select
+                          :value="getBookingAction(b)"
+                          @change="handleActionSelect(b, $event)"
+                          :class="[
+                            'appearance-none h-8.5 pl-3 pr-8 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20',
+                            getActionBadgeClass(b)
+                          ]"
+                          aria-label="เลือกการดำเนินการ"
                         >
-                          Check-in
-                        </BaseButton>
-
-                        <!-- Check-out Action -->
-                        <BaseButton
-                          v-if="b.checkedInAt && !b.checkedOutAt"
-                          @click="doCheckOut(b.id, b.roomNo)"
-                          variant="outline"
-                          size="sm"
-                          class="shadow-2xs text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                        >
-                          Check-out
-                        </BaseButton>
-
-                        <!-- Completed Badge -->
-                        <span
-                          v-if="b.checkedOutAt || b.status === 'completed'"
-                          class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200"
-                        >
-                          <span>✓</span> เช็คเอาท์แล้ว
-                        </span>
+                          <option value="waiting" class="bg-white text-ink font-normal">รอ Check-in</option>
+                          <option value="check_in" class="bg-white text-ink font-normal">Check-in (เข้าพัก)</option>
+                          <option value="check_out" class="bg-white text-ink font-normal">Check-out (เสร็จสิ้น)</option>
+                        </select>
+                        <ChevronDown class="w-3.5 h-3.5 absolute right-2.5 pointer-events-none text-slate-500" />
                       </div>
                     </td>
                   </tr>
