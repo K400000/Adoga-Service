@@ -12,7 +12,7 @@ import StatusBadge from '../components/common/StatusBadge.vue'
 import StatusStepper from '../components/common/StatusStepper.vue'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
-import { Copy, Check, Building2 } from '@lucide/vue'
+import { Copy, Check, Building2, CheckCircle2 } from '@lucide/vue'
 import { showToast } from '../utils/toast.js'
 import qrPaymentImg from '../assets/QRCODE_Payment.png'
 
@@ -347,11 +347,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
           <!-- Done step -->
           <div v-else class="bg-white rounded-2xl border border-line p-8 text-center">
-            <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <CheckCircle2 class="w-8 h-8" />
             </div>
-            <h2 class="font-display font-semibold text-2xl text-ink mb-2">จองสำเร็จ! 🎉</h2>
-            <p class="text-ink-muted mb-6">การจองของคุณได้รับการยืนยันแล้ว</p>
+            <h2 class="font-display font-bold text-2xl text-ink mb-2">การจองและชำระเงินสำเร็จ</h2>
+            <p class="text-ink-muted mb-6">การจองของคุณได้รับการยืนยันและชำระเงินเรียบร้อยแล้ว</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center">
               <BaseButton @click="router.push('/profile')" variant="secondary" size="md">ดูประวัติการจอง</BaseButton>
               <BaseButton @click="router.push('/')" variant="outline" size="md">กลับหน้าแรก</BaseButton>

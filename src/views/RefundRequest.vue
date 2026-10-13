@@ -13,7 +13,8 @@ import BaseButton from '../components/common/BaseButton.vue'
 import {
   ShieldCheck, ArrowLeft, CheckCircle2, Clock,
   CreditCard, Wallet, Landmark, PhoneCall, MessageSquare,
-  Lock, AlertCircle, FileText, ChevronRight, Check, MapPin
+  Lock, AlertCircle, FileText, ChevronRight, Check, MapPin,
+  Plane, Activity, CalendarX, CloudRain, Building2, FileEdit, Phone
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -53,14 +54,14 @@ const agreePolicy2 = ref(true)
 
 const showSuccessModal = ref(false)
 
-// Reason options mapping
+// Reason options mapping with Lucide icons (No emoji)
 const reasonsList = [
-  { id: 'เปลี่ยนแผนการเดินทาง', title: 'เปลี่ยนแผนการเดินทาง', desc: 'ตารางเวลาหรือแผนงานมีการเปลี่ยนแปลง', icon: '✈️' },
-  { id: 'เหตุฉุกเฉิน / ปัญหาสุขภาพ', title: 'เหตุฉุกเฉิน / ปัญหาสุขภาพ', desc: 'เจ็บป่วยกะทันหัน หรือมีภารกิจจำเป็น', icon: '🏥' },
-  { id: 'จองวันหรือห้องพักผิดพลาด', title: 'จองวันหรือห้องพักผิดพลาด', desc: 'ต้องการจองวันอื่นหรือเปลี่ยนประเภทห้อง', icon: '📅' },
-  { id: 'สภาพอากาศ / การเดินทาง', title: 'สภาพอากาศ / การเดินทาง', desc: 'สภาพอากาศติดขัด มรสุม หรือการเดินทางล่าช้า', icon: '🌧️' },
-  { id: 'พบที่พักอื่นที่ตอบโจทย์กว่า', title: 'พบที่พักอื่นที่ตอบโจทย์กว่า', desc: 'ตัดสินใจเลือกที่พักหรือแพ็กเกจใหม่', icon: '🏨' },
-  { id: 'เหตุผลอื่นๆ', title: 'เหตุผลอื่นๆ', desc: 'ระบุรายละเอียดเพิ่มเติมด้วยตนเอง', icon: '✏️' },
+  { id: 'เปลี่ยนแผนการเดินทาง', title: 'เปลี่ยนแผนการเดินทาง', desc: 'ตารางเวลาหรือแผนงานมีการเปลี่ยนแปลง', icon: Plane },
+  { id: 'เหตุฉุกเฉิน / ปัญหาสุขภาพ', title: 'เหตุฉุกเฉิน / ปัญหาสุขภาพ', desc: 'เจ็บป่วยกะทันหัน หรือมีภารกิจจำเป็น', icon: Activity },
+  { id: 'จองวันหรือห้องพักผิดพลาด', title: 'จองวันหรือห้องพักผิดพลาด', desc: 'ต้องการจองวันอื่นหรือเปลี่ยนประเภทห้อง', icon: CalendarX },
+  { id: 'สภาพอากาศ / การเดินทาง', title: 'สภาพอากาศ / การเดินทาง', desc: 'สภาพอากาศติดขัด มรสุม หรือการเดินทางล่าช้า', icon: CloudRain },
+  { id: 'พบที่พักอื่นที่ตอบโจทย์กว่า', title: 'พบที่พักอื่นที่ตอบโจทย์กว่า', desc: 'ตัดสินใจเลือกที่พักหรือแพ็กเกจใหม่', icon: Building2 },
+  { id: 'เหตุผลอื่นๆ', title: 'เหตุผลอื่นๆ', desc: 'ระบุรายละเอียดเพิ่มเติมด้วยตนเอง', icon: FileEdit },
 ]
 
 // Financial calculations
@@ -177,8 +178,9 @@ function handleDone() {
               <div class="flex-1 space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
                   <h3 class="font-display font-bold text-xl text-slate-900">{{ hotel?.name }}</h3>
-                  <span class="px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    ✓ ยืนยันแล้ว (จองสำเร็จ)
+                  <span class="px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                    <Check class="w-3.5 h-3.5" />
+                    <span>ยืนยันแล้ว (จองสำเร็จ)</span>
                   </span>
                 </div>
                 <p class="text-sm font-medium text-slate-500 flex items-center gap-1.5">
@@ -257,8 +259,8 @@ function handleDone() {
                     />
                   </div>
                   <div>
-                    <h5 class="font-bold text-base text-slate-900 mb-0.5 flex items-center gap-1.5">
-                      <span>{{ r.icon }}</span>
+                    <h5 class="font-bold text-base text-slate-900 mb-0.5 flex items-center gap-2">
+                      <component :is="r.icon" class="w-4 h-4 text-indigo-600 flex-shrink-0" />
                       <span>{{ r.title }}</span>
                     </h5>
                     <p class="text-xs text-slate-500 font-medium leading-normal">{{ r.desc }}</p>
@@ -324,8 +326,9 @@ function handleDone() {
                       <p class="text-xs sm:text-sm text-slate-600 font-medium">
                         เงินจะถูกโอนกลับเข้าบัตรเครดิต/เดบิต หรือ บัญชีพร้อมเพย์ที่ท่านใช้ชำระเงิน ยอดเต็มจำนวน <strong class="text-slate-800 font-bold">{{ formatPrice(originalAmount) }}</strong>
                       </p>
-                      <p class="text-xs text-slate-400 font-medium pt-1">
-                        💳 บัตรเครดิต Visa ลงท้าย **** 4892 (ธนาคารกสิกรไทย) / PromptPay
+                      <p class="text-xs text-slate-400 font-medium pt-1 flex items-center gap-1.5">
+                        <CreditCard class="w-3.5 h-3.5 text-slate-400" />
+                        <span>บัตรเครดิต Visa ลงท้าย **** 4892 (ธนาคารกสิกรไทย) / PromptPay</span>
                       </p>
                     </div>
                   </div>
@@ -512,7 +515,10 @@ function handleDone() {
               </p>
               <div class="space-y-2 pt-1 text-sm font-bold">
                 <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-slate-800">
-                  <span>📞 สายด่วน: 02-789-9999</span>
+                  <span class="flex items-center gap-2">
+                    <Phone class="w-4 h-4 text-slate-600" />
+                    <span>สายด่วน: 02-789-9999</span>
+                  </span>
                   <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">โทรฟรี</span>
                 </div>
                 <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-indigo-600">

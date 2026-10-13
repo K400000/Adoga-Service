@@ -4,7 +4,7 @@ import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 import { db } from '../stores/db.js'
 
-const VERSION = 7
+const VERSION = 9
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -257,8 +257,8 @@ export function runSeed(force = false) {
 
   // ── Bookings ──────────────────────────────────────────────
   const bookings = [
-    { id:'B001', userId:'U001', hotelId:'H001', roomId:'H001-R1', roomNo:'102', guests:2, checkIn: isoD(22), checkOut: isoD(24), nights:2, totalPrice:2700, status:'pending_payment', cancelReason:null, paymentMethod:'QR', paymentStatus:'waiting', createdAt: isoH(-1), expiresAt: isoH(11), checkedInAt:null, checkedOutAt:null },
-    { id:'B002', userId:'U001', hotelId:'H002', roomId:'H002-R1', roomNo:'302', guests:2, checkIn: isoD(-5), checkOut: isoD(-3), nights:2, totalPrice:3740, status:'confirmed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-7), expiresAt: isoH(-155), checkedInAt:null, checkedOutAt:null },
+    { id:'B001', userId:'U001', hotelId:'H001', roomId:'H001-R1', roomNo:'102', guests:2, checkIn: isoD(22), checkOut: isoD(24), nights:2, totalPrice:2700, status:'pending_payment', cancelReason:null, paymentMethod:'QR', paymentStatus:'awaiting', createdAt: isoH(-1), expiresAt: isoH(11), checkedInAt:null, checkedOutAt:null },
+    { id:'B002', userId:'U001', hotelId:'H002', roomId:'H002-R1', roomNo:'302', guests:2, checkIn: isoD(5), checkOut: isoD(7), nights:2, totalPrice:3740, status:'confirmed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-2), expiresAt: isoD(-1), checkedInAt:null, checkedOutAt:null },
     { id:'B003', userId:'U002', hotelId:'H003', roomId:'H003-R1', roomNo:'502', guests:2, checkIn: isoD(10), checkOut: isoD(13), nights:3, totalPrice:6720, status:'confirmed', cancelReason:null, paymentMethod:'BANK_TRANSFER', paymentStatus:'success', createdAt: isoD(-4), expiresAt: isoH(-83), checkedInAt:null, checkedOutAt:null },
     { id:'B004', userId:'U001', hotelId:'H005', roomId:'H005-R1', roomNo:'902', guests:2, checkIn: isoD(-8), checkOut: isoD(-6), nights:2, totalPrice:8624, status:'completed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-10), expiresAt: isoH(-228), checkedInAt: isoD(-8), checkedOutAt: isoD(-6) },
     { id:'B005', userId:'U002', hotelId:'H007', roomId:'H007-R1', roomNo:'1302', guests:2, checkIn: isoD(5), checkOut: isoD(7), nights:2, totalPrice:5440, status:'confirmed', cancelReason:null, paymentMethod:'QR', paymentStatus:'success', createdAt: isoD(-2), expiresAt: isoD(-1), checkedInAt:null, checkedOutAt:null },

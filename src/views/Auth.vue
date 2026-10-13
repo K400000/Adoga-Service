@@ -287,8 +287,8 @@ const ROLES = [
           {{ globalError }}
         </div>
 
-        <!-- Quick Demo Accounts -->
-        <div class="mb-5 p-3 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+        <!-- Quick Demo Accounts (Login only) -->
+        <div v-if="tab === 'login'" class="mb-5 p-3 rounded-2xl bg-indigo-50/60 border border-indigo-100">
           <p class="text-xs text-indigo-900 font-semibold mb-2">บัญชีทดสอบระบบ (คลิกเพื่อกรอกอัตโนมัติ)</p>
           <div class="flex flex-wrap gap-1.5">
             <button

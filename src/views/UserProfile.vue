@@ -6,7 +6,7 @@ import { db } from '../stores/db.js'
 import { useSession } from '../stores/session.js'
 import { getCurrentUser, logout } from '../services/authService.js'
 import { requestRefund, cancelBooking } from '../services/transitions.js'
-import { formatPrice, formatDate } from '../utils/date.js'
+import { formatPrice, formatDate, thaiBahtText } from '../utils/date.js'
 import Navbar from '../components/common/Navbar.vue'
 import Footer from '../components/common/Footer.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
@@ -97,9 +97,11 @@ function refundForBooking(bookingId) {
 }
 
 function canRefund(b) {
-  return (b.status === 'confirmed' || b.paymentStatus === 'success')
-    && !b.checkedOutAt
-    && !refundForBooking(b.id)
+  const hasRefund = !!refundForBooking(b.id)
+  const isPaid = (b.status === 'confirmed' || b.paymentStatus === 'success')
+  const isNotCheckedInOrOut = !b.checkedInAt && !b.checkedOutAt && b.status !== 'completed' && b.status !== 'cancelled'
+  const isBeforeCheckOut = new Date(b.checkOut) > new Date()
+  return isPaid && isNotCheckedInOrOut && !hasRefund && isBeforeCheckOut
 }
 
 // Review management state & methods
@@ -109,7 +111,13 @@ const reviewRating = ref(5)
 const reviewComment = ref('')
 
 function canReview(b) {
-  const isCheckedOut = b.status === 'completed' || !!b.checkedOutAt || (b.status === 'confirmed' && new Date(b.checkOut) <= new Date())
+  // ไม่สามารถรีวิวได้ หากมีการยื่นขอคืนเงิน (ที่ไม่ได้ถูกปฏิเสธ) หรือการจองถูกยกเลิก/คืนเงินแล้ว
+  const refund = refundForBooking(b.id)
+  if (refund && refund.status !== 'rejected') return false
+  if (b.status === 'cancelled' || b.paymentStatus === 'refunded') return false
+
+  // ผู้เข้าพักต้องเช็คเอาท์แล้วจริง ๆ (สถานะ completed หรือมี checkedOutAt)
+  const isCheckedOut = b.status === 'completed' || !!b.checkedOutAt
   return isCheckedOut
 }
 
@@ -180,10 +188,21 @@ const derivedBookingStatus = (b) => {
   return b.status
 }
 
+function shouldShowPaymentBadge(b) {
+  if (b.status === 'cancelled' && ['waiting', 'awaiting', 'failed'].includes(b.paymentStatus)) {
+    return false
+  }
+  return true
+}
+
 function getRoleLabel(role) {
   if (role === 'admin') return 'ผู้ดูแลระบบ (Admin)'
   if (role === 'manager') return 'ผู้ประกอบการโรงแรม (Manager)'
   return 'ผู้ใช้งานทั่วไป (User)'
+}
+
+function getHotel(hotelId) {
+  return (db['adoga_hotels'] || []).find(h => h.id === hotelId)
 }
 
 function getRoomType(hotelId, roomId) {
@@ -191,6 +210,24 @@ function getRoomType(hotelId, roomId) {
   if (!hotel) return 'ห้องพักมาตรฐาน'
   const room = hotel.rooms?.find(r => r.id === roomId)
   return room?.type || room?.name || 'Standard Room'
+}
+
+function getDocNumber(booking, docType) {
+  if (!booking) return ''
+  const dateStr = booking.createdAt ? new Date(booking.createdAt).toISOString().slice(0, 10).replace(/-/g, '') : '20261013'
+  if (docType === 'receipt') {
+    return `ADM-REC-${dateStr}-${booking.id}`
+  } else {
+    const ref = refundForBooking(booking.id)
+    return `ADM-REF-${dateStr}-${ref?.id || booking.id}`
+  }
+}
+
+function getDocProcessTime(iso) {
+  const d = iso ? new Date(iso) : new Date()
+  const datePart = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timePart = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  return `${datePart} เวลา ${timePart} น.`
 }
 
 // A4 Document modal state
@@ -437,7 +474,12 @@ function printDocument() {
                   <div class="flex flex-wrap items-center gap-2 mb-1">
                     <h3 class="font-display font-bold text-xl text-slate-900">{{ getHotelName(b.hotelId) }}</h3>
                     <StatusBadge entity="booking" :value="derivedBookingStatus(b)" />
-                    <StatusBadge entity="payment" :value="b.paymentStatus" size="sm" />
+                    <StatusBadge
+                      v-if="shouldShowPaymentBadge(b)"
+                      entity="payment"
+                      :value="b.paymentStatus"
+                      size="sm"
+                    />
                   </div>
 
                   <!-- Room Type Badge -->
@@ -481,7 +523,7 @@ function printDocument() {
 
                   <!-- Button 2: ใบคืนเงิน A4 (Refund Paper) -->
                   <button
-                    v-if="refundForBooking(b.id) || b.paymentStatus === 'refunded' || b.status === 'cancelled'"
+                    v-if="refundForBooking(b.id) || b.paymentStatus === 'refunded' || b.cancelReason === 'refunded'"
                     @click="openDocumentModal(b, 'refund')"
                     type="button"
                     class="h-10 px-4 rounded-full border-2 border-amber-300 hover:border-amber-500 bg-amber-50 hover:bg-amber-500 text-amber-900 hover:text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
@@ -554,18 +596,20 @@ function printDocument() {
     </BaseModal>
 
     <!-- Review Modal -->
-    <BaseModal :open="showReviewModal" @close="showReviewModal = false" title="⭐ เขียนรีวิวและให้คะแนนที่พัก">
+    <BaseModal :open="showReviewModal" @close="showReviewModal = false" title="เขียนรีวิวและให้คะแนนที่พัก">
       <div v-if="reviewBooking" class="flex flex-col gap-4">
         <!-- Hotel & Room Header -->
         <div class="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl">
           <h4 class="font-bold text-base text-slate-900 mb-1">
             {{ getHotelName(reviewBooking.hotelId) }}
           </h4>
-          <p class="text-xs font-semibold text-indigo-700">
-            🛏️ {{ getRoomType(reviewBooking.hotelId, reviewBooking.roomId) }} (หมายเลขห้อง {{ reviewBooking.roomNo }})
+          <p class="text-xs font-semibold text-indigo-700 flex items-center gap-1.5">
+            <BedDouble class="w-3.5 h-3.5" />
+            <span>{{ getRoomType(reviewBooking.hotelId, reviewBooking.roomId) }} (หมายเลขห้อง {{ reviewBooking.roomNo }})</span>
           </p>
-          <p class="text-xs text-slate-500 mt-1">
-            📅 วันที่เข้าพัก: {{ formatDate(reviewBooking.checkIn) }} — {{ formatDate(reviewBooking.checkOut) }}
+          <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+            <Calendar class="w-3.5 h-3.5 text-slate-400" />
+            <span>วันที่เข้าพัก: {{ formatDate(reviewBooking.checkIn) }} — {{ formatDate(reviewBooking.checkOut) }}</span>
           </p>
         </div>
 
@@ -590,7 +634,7 @@ function printDocument() {
             </button>
           </div>
           <p class="text-center text-xs font-bold text-amber-700 mt-2">
-            {{ reviewRating }} / 5 ดาว ({{ reviewRating === 5 ? 'ดีเยี่ยมที่สุด ⭐⭐⭐⭐⭐' : reviewRating === 4 ? 'ดีมาก ⭐⭐⭐⭐' : reviewRating === 3 ? 'ปานกลาง ⭐⭐⭐' : reviewRating === 2 ? 'พอใช้ ⭐⭐' : 'ควรปรับปรุง ⭐' }})
+            {{ reviewRating }} / 5 ดาว ({{ reviewRating === 5 ? 'ดีเยี่ยมที่สุด' : reviewRating === 4 ? 'ดีมาก' : reviewRating === 3 ? 'ปานกลาง' : reviewRating === 2 ? 'พอใช้' : 'ควรปรับปรุง' }})
           </p>
         </div>
 
@@ -633,10 +677,10 @@ function printDocument() {
             </div>
             <div>
               <h3 class="font-bold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
-                <span>{{ activeDocType === 'receipt' ? 'ใบเสร็จรับเงิน (Receipt A4)' : 'ใบแจ้งคืนเงิน (Refund Note A4)' }}</span>
+                <span>{{ activeDocType === 'receipt' ? 'ใบเสร็จรับเงิน (Official Receipt A4)' : 'ใบแจ้งการคืนเงิน (Refund Statement A4)' }}</span>
               </h3>
               <p class="text-xs sm:text-sm text-slate-500 font-medium">
-                เลขที่เอกสาร: {{ activeDocType === 'receipt' ? `REC-${activeDocBooking.id}` : `REF-${refundForBooking(activeDocBooking.id)?.id || activeDocBooking.id}` }}
+                เลขที่เอกสาร: {{ getDocNumber(activeDocBooking, activeDocType) }}
               </p>
             </div>
           </div>
@@ -667,187 +711,389 @@ function printDocument() {
           <!-- A4 Sheet Container -->
           <div
             id="a4-document-printable"
-            class="bg-white w-full max-w-[794px] min-h-[1020px] p-8 sm:p-12 border border-slate-300 shadow-xl rounded-sm flex flex-col justify-between font-sans text-slate-800 relative bg-white"
+            class="bg-white w-full max-w-[794px] min-h-[1123px] p-8 sm:p-11 border border-slate-300 shadow-xl rounded-xs flex flex-col justify-between font-sans text-slate-800 text-xs relative"
           >
-            <!-- Top Banner Header -->
+            <!-- Content Top Area -->
             <div>
-              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-slate-800 pb-6 mb-6 gap-4">
-                <div>
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-2xl font-black tracking-tight text-slate-900 font-display">adoga</span>
-                    <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Service</span>
+              <!-- 1. Header Row (Left: Company Details / Right: Document Info Box) -->
+              <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div class="flex-1 pr-2">
+                  <div class="flex items-baseline gap-2 mb-1">
+                    <span class="text-xl font-black tracking-tight text-slate-900 font-display">ADOGA SERVICE</span>
+                    <span class="text-xs font-bold text-slate-700">| บริษัท อาโดก้า เซอร์วิส จำกัด (มหาชน)</span>
                   </div>
-                  <p class="font-bold text-slate-800 text-sm">บริษัท อาโดก้า เซอร์วิส จำกัด (มหาชน)</p>
-                  <p class="text-xs text-slate-500">123 อาคารอาโดก้า ทาวเวอร์ ชั้น 18 ถนนสุขุมวิท เขตวัฒนา กรุงเทพฯ 10110</p>
-                  <p class="text-xs text-slate-500">เลขประจำตัวผู้เสียภาษี: 0105566099881 · โทร: 02-123-4567</p>
+                  <p class="text-[11px] text-slate-600 leading-snug">
+                    123 อาคารอาโดก้า ทาวเวอร์ ชั้น 18 ถนนสุขุมวิท แขวงคลองเตยเหนือ เขตวัฒนา กรุงเทพฯ 10110
+                  </p>
+                  <p class="text-[11px] text-slate-500 leading-snug mt-0.5">
+                    เลขประจำตัวผู้เสียภาษีอากร: 0105566099881 · โทรศัพท์: 02-123-4567 · เว็บไซต์: www.adoga-service.com
+                  </p>
                 </div>
 
-                <div class="sm:text-right">
-                  <span
-                    :class="[
-                      'inline-block px-4 py-1.5 rounded-xl font-bold text-sm mb-2 border',
-                      activeDocType === 'receipt'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                        : 'bg-amber-50 text-amber-800 border-amber-300'
-                    ]"
-                  >
-                    {{ activeDocType === 'receipt' ? '📄 ใบเสร็จรับเงิน (RECEIPT)' : '🧾 ใบแจ้งคืนเงิน (REFUND NOTE)' }}
-                  </span>
-                  <p class="text-xs font-mono text-slate-500">
-                    เลขที่: <strong class="text-slate-900">{{ activeDocType === 'receipt' ? `REC-${activeDocBooking.id}` : `REF-${refundForBooking(activeDocBooking.id)?.id || activeDocBooking.id}` }}</strong>
-                  </p>
-                  <p class="text-xs font-medium text-slate-500">
-                    วันที่ออกเอกสาร: <strong class="text-slate-900">{{ formatDate(activeDocType === 'receipt' ? activeDocBooking.createdAt : (refundForBooking(activeDocBooking.id)?.createdAt || activeDocBooking.createdAt)) }}</strong>
-                  </p>
+                <!-- Right Boxed Table (Matches the reference document box) -->
+                <div class="border border-slate-400 text-[11px] w-64 rounded-xs overflow-hidden flex-shrink-0">
+                  <table class="w-full border-collapse">
+                    <tbody>
+                      <tr class="border-b border-slate-300">
+                        <td class="bg-slate-100 font-bold px-2.5 py-1 w-24 text-slate-700 border-r border-slate-300">เลขที่เอกสาร:</td>
+                        <td class="px-2.5 py-1 font-mono font-bold text-slate-900">{{ getDocNumber(activeDocBooking, activeDocType) }}</td>
+                      </tr>
+                      <tr class="border-b border-slate-300">
+                        <td class="bg-slate-100 font-bold px-2.5 py-1 text-slate-700 border-r border-slate-300">วันที่ออก:</td>
+                        <td class="px-2.5 py-1 font-semibold text-slate-800">
+                          {{ formatDate(activeDocType === 'receipt' ? activeDocBooking.createdAt : (refundForBooking(activeDocBooking.id)?.createdAt || activeDocBooking.createdAt)) }}
+                        </td>
+                      </tr>
+                      <tr class="border-b border-slate-300">
+                        <td class="bg-slate-100 font-bold px-2.5 py-1 text-slate-700 border-r border-slate-300">ผู้ออก:</td>
+                        <td class="px-2.5 py-1 text-slate-800">ส่วนกลาง (Admin)</td>
+                      </tr>
+                      <tr>
+                        <td class="bg-slate-100 font-bold px-2.5 py-1 text-slate-700 border-r border-slate-300">รายงาน/ประเภท:</td>
+                        <td class="px-2.5 py-1 text-slate-800 font-medium">
+                          {{ activeDocType === 'receipt' ? 'ใบเสร็จรับเงิน (e-Receipt)' : 'ใบแจ้งคืนเงิน (e-Refund)' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <!-- Watermark Stamp Seal -->
-              <div class="absolute top-28 right-10 opacity-15 pointer-events-none select-none rotate-[-12deg]">
-                <div
-                  :class="[
-                    'border-4 rounded-3xl p-4 text-center font-black tracking-widest uppercase text-3xl',
-                    activeDocType === 'receipt' ? 'border-emerald-600 text-emerald-600' : 'border-rose-600 text-rose-600'
-                  ]"
-                >
-                  <div>{{ activeDocType === 'receipt' ? 'PAID & VERIFIED' : 'REFUND PROCESSED' }}</div>
-                  <div class="text-sm font-bold tracking-normal mt-1">ADOGA SERVICE OFFICIAL</div>
-                </div>
+              <!-- Thick Dividing Horizontal Rule -->
+              <div class="h-0.5 bg-slate-900 my-3.5 w-full"></div>
+
+              <!-- 2. Document Title & Subtitle -->
+              <div class="text-center my-2.5">
+                <h1 class="text-lg font-bold text-slate-900 tracking-wide">
+                  {{ activeDocType === 'receipt' ? 'ใบเสร็จรับเงินและใบกำกับภาษีอย่างย่อ ประจำงวด' : 'ใบแจ้งการคืนเงินและยกเลิกคำขอจอง ประจำงวด' }}
+                </h1>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">
+                  {{ activeDocType === 'receipt' ? '(Official Receipt & Electronic Payment Confirmation Report)' : '(Executive Refund Statement & Cancellation Summary Report)' }}
+                </p>
               </div>
 
-              <!-- Customer & Details Grid -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 rounded-2xl p-5 border border-slate-200 mb-6 text-sm">
+              <!-- Sub Metadata Bar -->
+              <div class="flex justify-between items-center text-[11px] text-slate-600 mb-3 border-b border-slate-200 pb-1.5">
                 <div>
-                  <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-200 pb-1">
-                    👤 ข้อมูลลูกค้า / Customer Info
-                  </h4>
-                  <p class="font-bold text-slate-900 text-base mb-0.5">
-                    {{ user?.firstName }} {{ user?.lastName }}
-                    <span v-if="user?.nickname" class="text-slate-500 text-xs font-normal">({{ user?.nickname }})</span>
-                  </p>
-                  <p class="text-slate-600 text-xs">อีเมล: {{ user?.email }}</p>
-                  <p class="text-slate-600 text-xs">รหัสผู้ใช้งาน: {{ user?.id }}</p>
+                  <span class="font-bold text-slate-800">เรียน:</span> คุณ {{ user?.firstName }} {{ user?.lastName }} (รหัสผู้ใช้งาน: {{ user?.id }})
                 </div>
-
                 <div>
-                  <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-200 pb-1">
-                    💳 ข้อมูลการชำระเงิน / Payment Info
-                  </h4>
-                  <p class="text-slate-700 text-xs font-semibold">
-                    ชำระวันไหน: <strong class="text-slate-900 font-bold">{{ formatDate(activeDocBooking.createdAt) }}</strong>
-                  </p>
-                  <p class="text-slate-700 text-xs font-semibold">
-                    ช่องทางชำระ: <strong class="text-slate-900">{{ activeDocBooking.paymentMethod === 'QR' ? 'สแกน QR Code (PromptPay)' : 'โอนเงินผ่านธนาคาร' }}</strong>
-                  </p>
-                  <p class="text-slate-700 text-xs font-semibold">
-                    หมายเลขการจอง: <strong class="text-slate-900">#{{ activeDocBooking.id }}</strong>
-                  </p>
+                  <span class="font-bold text-slate-800">เวลาประมวลผล:</span> {{ getDocProcessTime(activeDocType === 'receipt' ? activeDocBooking.createdAt : (refundForBooking(activeDocBooking.id)?.createdAt || activeDocBooking.createdAt)) }}
                 </div>
               </div>
 
-              <!-- Main Breakdown Table -->
-              <div class="border border-slate-300 rounded-2xl overflow-hidden mb-6">
-                <table class="w-full text-left text-sm border-collapse">
+              <!-- 3. Section ๑: สรุปข้อมูลการจองและที่พักสำคัญ -->
+              <div class="mb-3.5">
+                <h2 class="text-xs font-bold text-slate-900 mb-1.5">๑. สรุปข้อมูลการจองและที่พักสำคัญ (Executive Key Indicators Summary)</h2>
+                <table class="w-full border-collapse border border-slate-400 text-[11px]">
                   <thead>
-                    <tr class="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
-                      <th class="py-3 px-4 w-10 text-center">#</th>
-                      <th class="py-3 px-4">ชื่อโรงแรม (Hotel)</th>
-                      <th class="py-3 px-4">ประเภทห้อง (Room)</th>
-                      <th class="py-3 px-4">ชำระวันไหน (Paid Date)</th>
-                      <th class="py-3 px-4 text-right">ราคา (Price)</th>
+                    <tr class="bg-slate-100 font-bold text-slate-800 border-b border-slate-400 text-left">
+                      <th class="border border-slate-300 py-1.5 px-2 text-center w-12">ลำดับ</th>
+                      <th class="border border-slate-300 py-1.5 px-2 w-48">รายการตัวชี้วัด (Key Indicator)</th>
+                      <th class="border border-slate-300 py-1.5 px-2 w-48">จำนวน / ข้อมูลจริง</th>
+                      <th class="border border-slate-300 py-1.5 px-2">รายละเอียดและข้อมูลจำแนก</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-200 bg-white">
-                    <tr>
-                      <td class="py-4 px-4 text-center font-bold text-slate-400">1</td>
-                      <td class="py-4 px-4">
-                        <p class="font-bold text-slate-900 text-base mb-0.5">{{ getHotelName(activeDocBooking.hotelId) }}</p>
-                        <p class="text-xs text-slate-500">
-                          📅 {{ formatDate(activeDocBooking.checkIn) }} — {{ formatDate(activeDocBooking.checkOut) }} ({{ activeDocBooking.nights }} คืน, {{ activeDocBooking.guests }} ท่าน)
-                        </p>
+                  <tbody>
+                    <tr class="hover:bg-slate-50/50">
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">1</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">โรงแรมที่พัก (Hotel)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">{{ getHotelName(activeDocBooking.hotelId) }}</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        {{ getHotel(activeDocBooking.hotelId)?.location || 'ประเทศไทย' }} · หมายเลขการจอง: #{{ activeDocBooking.id }}
                       </td>
-                      <td class="py-4 px-4 font-semibold text-slate-800">
-                        <div class="text-slate-900 font-bold">{{ getRoomType(activeDocBooking.hotelId, activeDocBooking.roomId) }}</div>
-                        <span class="text-xs text-slate-500 font-normal">หมายเลขห้อง {{ activeDocBooking.roomNo }}</span>
+                    </tr>
+                    <tr class="hover:bg-slate-50/50">
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">2</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">ประเภทห้องพัก (Room Type)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">{{ getRoomType(activeDocBooking.hotelId, activeDocBooking.roomId) }}</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        ห้องหมายเลข {{ activeDocBooking.roomNo }} · จำนวนผู้เข้าพัก: {{ activeDocBooking.guests }} ท่าน
                       </td>
-                      <td class="py-4 px-4 font-bold text-indigo-700 text-xs">
-                        {{ formatDate(activeDocBooking.createdAt) }}
+                    </tr>
+                    <tr class="hover:bg-slate-50/50">
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">3</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">ระยะเวลาเข้าพัก (Stay Period)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">{{ activeDocBooking.nights }} คืน</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        {{ formatDate(activeDocBooking.checkIn) }} ถึง {{ formatDate(activeDocBooking.checkOut) }}
                       </td>
-                      <td class="py-4 px-4 text-right font-bold text-slate-900 text-base tabular-nums">
-                        {{ formatPrice(activeDocBooking.totalPrice) }}
+                    </tr>
+                    <tr class="hover:bg-slate-50/50">
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">4</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">
+                        {{ activeDocType === 'receipt' ? 'ยอดค่าบริการสุทธิ (Total Amount)' : 'ยอดเงินคืนสุทธิ (Refund Amount)' }}
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-indigo-900">
+                        {{ formatPrice(activeDocType === 'receipt' ? activeDocBooking.totalPrice : (refundForBooking(activeDocBooking.id)?.amount || activeDocBooking.totalPrice)) }}
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        {{ activeDocType === 'receipt' ? `ชำระเงินสำเร็จผ่าน ${activeDocBooking.paymentMethod === 'QR' ? 'PromptPay QR' : 'โอนเงินผ่านธนาคาร'}` : 'คำนวณตามยอดชำระจริงที่ได้รับการอนุมัติ' }}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <!-- Financial Totals -->
-              <div class="flex justify-end mb-6">
-                <div class="w-full sm:w-72 bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-sm">
-                  <div class="flex justify-between text-slate-600 text-xs">
-                    <span>ราคาก่อนภาษี (Subtotal):</span>
-                    <span>{{ formatPrice(Math.round(activeDocBooking.totalPrice * 100 / 107)) }}</span>
+              <!-- 4. Section ๒: รายละเอียดค่าบริการ / การคืนเงิน (Financial Breakdown) -->
+              <div class="mb-3.5">
+                <h2 class="text-xs font-bold text-slate-900 mb-1.5">
+                  {{ activeDocType === 'receipt' ? '๒. รายละเอียดค่าบริการและการชำระเงิน (Revenue & Payment Breakdown)' : '๒. รายละเอียดคำขอคืนเงินและการพิจารณา (Refund Assessment Breakdown)' }}
+                </h2>
+
+                <!-- Table for Receipt -->
+                <table v-if="activeDocType === 'receipt'" class="w-full border-collapse border border-slate-400 text-[11px]">
+                  <thead>
+                    <tr class="bg-slate-100 font-bold text-slate-800 border-b border-slate-400 text-left">
+                      <th class="border border-slate-300 py-1.5 px-2 text-center w-12">ลำดับ</th>
+                      <th class="border border-slate-300 py-1.5 px-2">รายการค่าบริการ (Item Description)</th>
+                      <th class="border border-slate-300 py-1.5 px-2 text-center w-24">จำนวน (Qty)</th>
+                      <th class="border border-slate-300 py-1.5 px-2 text-right w-32">ราคาต่อหน่วย</th>
+                      <th class="border border-slate-300 py-1.5 px-2 text-right w-36">จำนวนเงิน (Amount)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">1</td>
+                      <td class="border border-slate-300 py-1.5 px-2">
+                        <span class="font-bold text-slate-900">ค่าบริการห้องพัก {{ getRoomType(activeDocBooking.hotelId, activeDocBooking.roomId) }}</span>
+                        <span class="text-slate-500 block text-[10px]">{{ getHotelName(activeDocBooking.hotelId) }} ({{ activeDocBooking.nights }} คืน)</span>
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center text-slate-700">{{ activeDocBooking.nights }} คืน</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right text-slate-700">
+                        {{ formatPrice(Math.round(activeDocBooking.totalPrice / (activeDocBooking.nights || 1))) }}
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right font-bold text-slate-900">
+                        {{ formatPrice(activeDocBooking.totalPrice) }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">2</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-700">ส่วนลดโปรโมชั่นพิเศษ (Promotion Discount)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center text-slate-700">1 รายการ</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right text-slate-700">฿0</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right font-medium text-slate-700">฿0</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">3</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-700">ค่าบริการระบบและอำนวยความสะดวก (Service Fee)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center text-slate-700">1 รายการ</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right text-slate-700">ฟรี</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-right font-medium text-slate-700">฿0</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- Table for Refund -->
+                <table v-else class="w-full border-collapse border border-slate-400 text-[11px]">
+                  <thead>
+                    <tr class="bg-slate-100 font-bold text-slate-800 border-b border-slate-400 text-left">
+                      <th class="border border-slate-300 py-1.5 px-2 text-center w-12">ลำดับ</th>
+                      <th class="border border-slate-300 py-1.5 px-2 w-52">หัวข้อการพิจารณา (Key Assessment)</th>
+                      <th class="border border-slate-300 py-1.5 px-2 w-48">ข้อมูลคำร้อง (Application Data)</th>
+                      <th class="border border-slate-300 py-1.5 px-2">รายละเอียดและผลการตรวจสอบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">1</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">รหัสคำขอคืนเงิน (Refund ID)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">RF-{{ refundForBooking(activeDocBooking.id)?.id || activeDocBooking.id }}</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">ยื่นเรื่องผ่านระบบอัตโนมัติ Adoga Service</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">2</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">เหตุผลความประสงค์ (Reason)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-semibold text-slate-800">
+                        {{ refundForBooking(activeDocBooking.id)?.reason || 'เปลี่ยนแผนการเดินทาง' }}
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        วันที่ยื่นเรื่อง: {{ formatDate(refundForBooking(activeDocBooking.id)?.createdAt || activeDocBooking.createdAt) }}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">3</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">ช่องทางโอนคืน (Refund Channel)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-800 font-medium">โอนคืนช่องทางเดิมที่ชำระ</td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">ระยะเวลาดำเนินการภายใน 3–5 วันทำการ</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700">4</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold text-slate-900">ผลการพิจารณา (Audit Result)</td>
+                      <td class="border border-slate-300 py-1.5 px-2 font-bold" :class="refundForBooking(activeDocBooking.id)?.status === 'approved' ? 'text-emerald-700' : refundForBooking(activeDocBooking.id)?.status === 'rejected' ? 'text-rose-700' : 'text-indigo-700'">
+                        {{ refundForBooking(activeDocBooking.id)?.status === 'approved' ? 'อนุมัติการคืนเงิน (Approved)' : refundForBooking(activeDocBooking.id)?.status === 'rejected' ? 'ปฏิเสธคำขอ (Rejected)' : 'อยู่ระหว่างตรวจสอบ (Reviewing)' }}
+                      </td>
+                      <td class="border border-slate-300 py-1.5 px-2 text-slate-600">
+                        {{ refundForBooking(activeDocBooking.id)?.rejectReason ? 'สาเหตุ: ' + refundForBooking(activeDocBooking.id)?.rejectReason : 'ผ่านเกณฑ์ตามเงื่อนไขนโยบายของ Adoga Service' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- 4-Box Summary Grid underneath (Matches the trend summary bar in the reference image) -->
+                <div class="grid grid-cols-4 border border-slate-400 text-[11px] text-center my-2 divide-x divide-slate-400 bg-slate-50">
+                  <div class="py-1.5 px-2">
+                    <span class="text-slate-500 block text-[10px]">
+                      {{ activeDocType === 'receipt' ? 'ราคาก่อนภาษี (Subtotal):' : 'ยอดชำระเดิม (Original):' }}
+                    </span>
+                    <span class="font-bold text-slate-800">
+                      {{ formatPrice(activeDocType === 'receipt' ? Math.round(activeDocBooking.totalPrice * 100 / 107) : activeDocBooking.totalPrice) }}
+                    </span>
                   </div>
-                  <div class="flex justify-between text-slate-600 text-xs pb-2 border-b border-slate-200">
-                    <span>ภาษีมูลค่าเพิ่ม VAT (7%):</span>
-                    <span>{{ formatPrice(activeDocBooking.totalPrice - Math.round(activeDocBooking.totalPrice * 100 / 107)) }}</span>
+                  <div class="py-1.5 px-2">
+                    <span class="text-slate-500 block text-[10px]">
+                      {{ activeDocType === 'receipt' ? 'ภาษีมูลค่าเพิ่ม (VAT 7%):' : 'ค่าธรรมเนียมหัก (Fee):' }}
+                    </span>
+                    <span class="font-bold text-slate-800">
+                      {{ activeDocType === 'receipt' ? formatPrice(activeDocBooking.totalPrice - Math.round(activeDocBooking.totalPrice * 100 / 107)) : '฿0' }}
+                    </span>
                   </div>
-                  <div class="flex justify-between font-bold text-slate-900 text-lg pt-1">
-                    <span>{{ activeDocType === 'receipt' ? 'ยอดชำระสุทธิ:' : 'ยอดเงินคืนสุทธิ:' }}</span>
-                    <span class="text-indigo-700">{{ formatPrice(activeDocBooking.totalPrice) }}</span>
+                  <div class="py-1.5 px-2">
+                    <span class="text-slate-500 block text-[10px]">
+                      {{ activeDocType === 'receipt' ? 'สถานะการชำระเงิน:' : 'สถานะการคืนเงิน:' }}
+                    </span>
+                    <span class="font-bold" :class="activeDocType === 'receipt' ? 'text-emerald-700' : (refundForBooking(activeDocBooking.id)?.status === 'approved' ? 'text-emerald-700' : refundForBooking(activeDocBooking.id)?.status === 'rejected' ? 'text-rose-700' : 'text-indigo-700')">
+                      {{ activeDocType === 'receipt' ? 'ชำระเงินสำเร็จ (100%)' : (refundForBooking(activeDocBooking.id)?.status === 'approved' ? 'อนุมัติเรียบร้อย' : refundForBooking(activeDocBooking.id)?.status === 'rejected' ? 'ปฏิเสธคำขอ' : 'กำลังดำเนินการ') }}
+                    </span>
                   </div>
+                  <div class="py-1.5 px-2 bg-indigo-50/50">
+                    <span class="text-indigo-950 block text-[10px] font-bold">
+                      {{ activeDocType === 'receipt' ? 'ยอดชำระสุทธิ (Total Net):' : 'ยอดเงินคืนสุทธิ (Net Refund):' }}
+                    </span>
+                    <span class="font-black text-indigo-700 text-sm">
+                      {{ formatPrice(activeDocType === 'receipt' ? activeDocBooking.totalPrice : (refundForBooking(activeDocBooking.id)?.amount || activeDocBooking.totalPrice)) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Thai Baht Text Row -->
+                <div class="border border-slate-300 bg-slate-100/70 py-1 px-3 text-[11px] text-slate-800 font-medium flex justify-between items-center">
+                  <span>
+                    <strong>จำนวนเงินตัวอักษร:</strong> ( {{ thaiBahtText(activeDocType === 'receipt' ? activeDocBooking.totalPrice : (refundForBooking(activeDocBooking.id)?.amount || activeDocBooking.totalPrice)) }} )
+                  </span>
+                  <span class="text-slate-500 text-[10px]">
+                    {{ activeDocType === 'receipt' ? 'รวมภาษีมูลค่าเพิ่มเรียบร้อยแล้ว' : 'ยอดเงินคืนสุทธิที่ได้รับการอนุมัติ' }}
+                  </span>
                 </div>
               </div>
 
-              <!-- Refund Note Specific Section -->
-              <div v-if="activeDocType === 'refund'" class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 text-xs text-amber-900 space-y-1.5">
-                <h5 class="font-bold text-amber-950 text-sm flex items-center gap-1.5">
-                  <RotateCcw class="w-4 h-4 text-amber-600" />
-                  <span>รายละเอียดการคืนเงิน (Refund Details)</span>
-                </h5>
-                <p><strong>เหตุผลการคืนเงิน:</strong> {{ refundForBooking(activeDocBooking.id)?.reason || 'เปลี่ยนแผนการเดินทาง' }}</p>
-                <p>
-                  <strong>สถานะการคืนเงิน:</strong> 
-                  <span class="font-bold underline">
-                    {{
-                      refundForBooking(activeDocBooking.id)?.status === 'approved'
-                        ? 'อนุมัติคำขอและโอนเงินคืนเรียบร้อยแล้ว'
-                        : refundForBooking(activeDocBooking.id)?.status === 'rejected'
-                        ? 'ปฏิเสธคำขอคืนเงิน (' + (refundForBooking(activeDocBooking.id)?.rejectReason || 'ไม่เข้าเงื่อนไข') + ')'
-                        : 'อยู่ระหว่างการตรวจสอบและดำเนินการคืนเงิน'
-                    }}
-                  </span>
-                </p>
+              <!-- 5. Section ๓: ตารางแจกแจงสถานะและนโยบาย (Operational Breakdown Table) -->
+              <div class="mb-4">
+                <h2 class="text-xs font-bold text-slate-900 mb-1.5">๓. ตารางแจกแจงสถานะและนโยบายการให้บริการ (Operational Breakdown)</h2>
+                
+                <!-- 2-Column Side-by-Side Table matching section 3 in reference image -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <!-- Left Box -->
+                  <table class="w-full border-collapse border border-slate-400 text-[10.5px]">
+                    <thead>
+                      <tr class="bg-slate-100 font-bold text-slate-800 border-b border-slate-400 text-left">
+                        <th class="border border-slate-300 py-1 px-2">{{ activeDocType === 'receipt' ? 'สถานะการจอง (Bookings)' : 'ขั้นตอนการคืนเงิน (Refund Steps)' }}</th>
+                        <th class="border border-slate-300 py-1 px-2 text-center w-16">จำนวน</th>
+                        <th class="border border-slate-300 py-1 px-2 text-center w-16">สัดส่วน</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="border border-slate-300 py-1 px-2 font-medium">
+                          {{ activeDocType === 'receipt' ? 'ชำระเงินสำเร็จ (Payment Success)' : 'ตรวจสอบเอกสารและเงื่อนไข' }}
+                        </td>
+                        <td class="border border-slate-300 py-1 px-2 text-center font-bold">1</td>
+                        <td class="border border-slate-300 py-1 px-2 text-center font-bold text-emerald-700">100%</td>
+                      </tr>
+                      <tr>
+                        <td class="border border-slate-300 py-1 px-2 font-medium">
+                          {{ activeDocType === 'receipt' ? 'การยืนยันห้องพัก (Confirmed)' : 'การโอนเงินคืนสู่บัญชีผู้ชำระ' }}
+                        </td>
+                        <td class="border border-slate-300 py-1 px-2 text-center font-bold">1</td>
+                        <td class="border border-slate-300 py-1 px-2 text-center font-bold text-emerald-700">100%</td>
+                      </tr>
+                      <tr class="bg-slate-50 font-bold">
+                        <td class="border border-slate-300 py-1 px-2">รวมรายการทั้งหมด</td>
+                        <td class="border border-slate-300 py-1 px-2 text-center">1</td>
+                        <td class="border border-slate-300 py-1 px-2 text-center">100%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <!-- Right Box -->
+                  <table class="w-full border-collapse border border-slate-400 text-[10.5px]">
+                    <thead>
+                      <tr class="bg-slate-100 font-bold text-slate-800 border-b border-slate-400 text-left">
+                        <th class="border border-slate-300 py-1 px-2">{{ activeDocType === 'receipt' ? 'นโยบายและเงื่อนไข (Service Terms)' : 'การจัดการห้องพัก (Room Units)' }}</th>
+                        <th class="border border-slate-300 py-1 px-2 text-left w-36">การปฏิบัติตามเกณฑ์</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="border border-slate-300 py-1 px-2 font-medium">
+                          {{ activeDocType === 'receipt' ? 'การแสดงหลักฐาน ณ เคาน์เตอร์เช็คอิน' : 'การส่งคืนห้องพักสู่ระบบส่วนกลาง' }}
+                        </td>
+                        <td class="border border-slate-300 py-1 px-2 text-slate-700 font-semibold">
+                          {{ activeDocType === 'receipt' ? 'แสดงเอกสารนี้หรือรหัสจอง' : 'คืนสถานะว่าง (Available)' }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-slate-300 py-1 px-2 font-medium">
+                          {{ activeDocType === 'receipt' ? 'เวลาเช็คอินและเช็คเอาท์มาตรฐาน' : 'ผลต่อสิทธิ์การเข้าพักเดิม' }}
+                        </td>
+                        <td class="border border-slate-300 py-1 px-2 text-slate-700 font-semibold">
+                          {{ activeDocType === 'receipt' ? 'เช็คอิน 14:00 น. / เช็คเอาท์ 12:00 น.' : 'ยกเลิกสิทธิ์เข้าพักสมบูรณ์' }}
+                        </td>
+                      </tr>
+                      <tr class="bg-slate-50 font-bold">
+                        <td class="border border-slate-300 py-1 px-2">การออกใบกำกับภาษี / บัญชี</td>
+                        <td class="border border-slate-300 py-1 px-2 text-indigo-700">สมบูรณ์ในระบบอิเล็กทรอนิกส์</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            <!-- Footer Signatures & Official Stamp -->
-            <div class="pt-8 border-t border-slate-200 mt-auto">
-              <div class="grid grid-cols-2 gap-8 mb-6 text-center text-xs">
-                <div class="space-y-12">
-                  <p class="font-bold text-slate-600">ลงชื่อผู้ชำระเงิน / Customer</p>
-                  <div class="border-b border-dashed border-slate-400 w-40 mx-auto"></div>
-                  <p class="text-slate-500">({{ user?.firstName }} {{ user?.lastName }})</p>
+            <!-- Footer Area: Disclaimer & Signatures & Rubber Stamp -->
+            <div class="pt-2 mt-auto">
+              <!-- Disclaimer -->
+              <p class="text-[10px] text-slate-500 italic mb-4">
+                * คำรับรอง: ข้าพเจ้าขอรับรองว่า ข้อมูลธุรกรรมและรายการที่ระบุในเอกสารฉบับนี้ ได้รับการประมวลผลจากฐานข้อมูลระบบ Adoga Service โดยถูกต้องตรงตามความเป็นจริงทุกประการ
+              </p>
+
+              <!-- Two Signatures (Prepared By & Approved By) -->
+              <div class="grid grid-cols-2 gap-8 text-center text-xs relative mb-3">
+                <!-- Left: Prepared By -->
+                <div class="space-y-1">
+                  <p class="font-bold text-slate-800 mb-8">ผู้จัดทำรายงาน (Prepared By)</p>
+                  <p class="text-slate-400 select-none">ลงชื่อ ................................................................</p>
+                  <p class="text-slate-700 font-semibold mt-1">( เจ้าหน้าที่แผนกบริการลูกค้า / Customer Support )</p>
+                  <p class="text-[10px] text-slate-500">วันที่: ..... / ..... / .........</p>
                 </div>
 
-                <div class="space-y-12 relative">
-                  <p class="font-bold text-slate-600">ลงชื่อผู้รับเงิน / Authorized Signature</p>
-                  
-                  <!-- Circular Stamp Graphic -->
-                  <div class="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-20 border-2 border-indigo-500 rounded-full flex items-center justify-center text-indigo-600 opacity-80 pointer-events-none rotate-[-15deg]">
-                    <div class="text-[9px] font-black text-center leading-tight">
-                      <div>ADOGA SERVICE</div>
-                      <div class="text-[7px]">OFFICIAL SEAL</div>
+                <!-- Right: Approved By with Official Rubber Stamp -->
+                <div class="space-y-1 relative">
+                  <p class="font-bold text-slate-800 mb-8">ผู้ตรวจสอบและอนุมัติ (Approved By)</p>
+
+                  <!-- Circular Stamp Overlay exactly like the reference image -->
+                  <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-28 pointer-events-none select-none rotate-[-12deg] z-10 flex items-center justify-center">
+                    <div class="w-26 h-26 rounded-full border-2 border-dashed border-indigo-600/80 p-1 flex items-center justify-center">
+                      <div class="w-full h-full rounded-full border-2 border-indigo-600/80 flex flex-col items-center justify-center text-indigo-700/85 text-[8px] font-black leading-tight tracking-tight uppercase text-center bg-indigo-50/20">
+                        <div>★ ★ ★</div>
+                        <div class="font-black text-[9px] tracking-wider my-0.5">ADOGA SERVICE</div>
+                        <div class="text-[7px] font-bold border-y border-indigo-500/60 w-3/4 py-0.5 my-0.5">OFFICIAL SEAL</div>
+                        <div class="text-[6.5px]">AUTHORIZED</div>
+                        <div>★ ★ ★</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="border-b border-dashed border-slate-400 w-40 mx-auto"></div>
-                  <p class="text-slate-500">(เจ้าหน้าที่อนุมัติ Adoga Service)</p>
+                  <p class="text-slate-400 select-none">ลงชื่อ ................................................................</p>
+                  <p class="text-slate-700 font-semibold mt-1">( ผู้อำนวยการฝ่ายปฏิบัติการ / Operations Director )</p>
+                  <p class="text-[10px] text-slate-500">วันที่: ..... / ..... / .........</p>
                 </div>
               </div>
 
-              <div class="text-center text-[10px] text-slate-400 font-medium">
-                เอกสารฉบับนี้ถูกออกด้วยระบบอิเล็กทรอนิกส์ของ Adoga Service และมีผลสมบูรณ์ตามกฎหมาย · ขอบคุณที่ใช้บริการ
+              <!-- Document Footer Bar -->
+              <div class="border-t border-slate-300 pt-2 flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                <div>เอกสารนี้ออกโดยระบบอัตโนมัติ Adoga Service · มีผลสมบูรณ์ตามระบบอิเล็กทรอนิกส์</div>
+                <div>หน้า ๑ จาก ๑ (Page 1 of 1)</div>
               </div>
             </div>
 
