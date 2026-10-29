@@ -16,12 +16,15 @@ Status ทุกตัวต้องตรงกับ `ARCHITECTURE.md` §4 �
 [
   { "id": "U001", "email": "user@gmail.com",   "password": "Adoga1234", "role": "user",    "firstName": "John", "lastName": "Doe",   "nickname": "Johnny" },
   { "id": "U002", "email": "mary@gmail.com",   "password": "Adoga1234", "role": "user",    "firstName": "Mary", "lastName": "Smith", "nickname": "Mary" },
-  { "id": "M001", "email": "hotel@domain.com", "password": "Adoga1234", "role": "manager", "firstName": "Somchai", "lastName": "Rakthai", "nickname": "Chai" },
-  { "id": "M002", "email": "hotel2@domain.com","password": "Adoga1234", "role": "manager", "firstName": "Suda", "lastName": "Meesuk", "nickname": "Suda" },
+  { "id": "M001", "email": "manager@gmail.com", "password": "Adoga1234", "role": "manager", "firstName": "Somchai", "lastName": "Rakthai", "nickname": "Chai" },
+  { "id": "M002", "email": "manager2@gmail.com","password": "Adoga1234", "role": "manager", "firstName": "Suda", "lastName": "Meesuk", "nickname": "Suda" },
+  { "id": "M003", "email": "manager3@gmail.com","password": "Adoga1234", "role": "manager", "firstName": "Anan", "lastName": "Chaiyo", "nickname": "Anan" },
   { "id": "A001", "email": "admin@adoga.com",  "password": "Adoga1234", "role": "admin",   "firstName": "Admin", "lastName": "Adoga", "nickname": "Admin" }
 ]
 ```
-- ความสัมพันธ์ Manager↔Hotel ใช้ `hotel.managerId` (ไม่เก็บ `hotelId` ใน User เพราะ Manager สร้างได้หลายโรงแรม)
+- **ความสัมพันธ์ Manager↔Hotel = 1:1** ใช้ `hotel.managerId` เป็นแหล่งอ้างอิงเดียว (ไม่เก็บ `hotelId` ใน User) — ผู้จัดการ 1 คนดูแลโรงแรมได้ **1 แห่งเท่านั้น**
+- หากต้องการหลายอาคาร/หลายทำเล ให้แยกเป็น **สาขา (branch)** ภายใต้โรงแรมเดียวกัน ไม่สร้างโรงแรมใหม่ให้ผู้จัดการคนเดิม
+- Seed มีบัญชีผู้จัดการ `M001`–`M015` ครบทุกโรงแรม (1 บัญชี : 1 โรงแรม) — `M001` = `manager@gmail.com`, `M002` = `manager2@gmail.com`, `M003`–`M015` = `managerN@gmail.com` รหัสผ่าน `Adoga1234` ทุกบัญชี
 - Seed password = `Adoga1234` (ผ่าน password policy ใน `ARCHITECTURE.md` §3.2 ทุกบัญชี)
 - Register ใหม่: `id` = prefix ตาม role (`U`/`M`/`A`) + running number; `email` เก็บเป็น lowercase; ฟิลด์เพิ่มตอนสมัคร: `provider` (`"local"` | `"google"`, seed ที่ไม่ระบุ = `local`) และ `createdAt`
 - `nickname` ว่างตอนสมัคร → ใช้ `firstName`
@@ -36,7 +39,7 @@ Schema:
 ```json
 {
   "id": "H001",
-  "managerId": "M001",
+  "managerId": "M003",
   "name": "Chonburi Sea View",
   "location": "บางแสน, ชลบุรี",
   "description": "รีสอร์ทติดทะเลบางแสน ...",
@@ -77,21 +80,21 @@ Schema:
 
 | id | ชื่อ | จังหวัด/ทำเล | manager | status | หมายเหตุ |
 |---|---|---|---|---|---|
-| H001 | Chonburi Sea View | บางแสน, ชลบุรี | M001 | `approved` | มีห้องครบ 3 สถานะ (available/booked/maintenance) |
+| H001 | Chonburi Sea View | บางแสน, ชลบุรี | M003 | `approved` | มีห้องครบ 3 สถานะ (available/booked/maintenance) |
 | H002 | Pattaya Beach Resort & Spa | พัทยา, ชลบุรี | M001 | `approved` | discount 15%, สปาครบวงจร |
 | H003 | Chiang Mai Mountain Haven | แม่ริม, เชียงใหม่ | M002 | `approved` | discount 20%, สไตล์ล้านนากลางหุบเขา |
-| H004 | Nimman Chic Boutique Hotel | นิมมานเหมินท์, เชียงใหม่ | M002 | `approved` | บูติกโฮเทลใจกลางนิมมานฯ |
-| H005 | Phuket Sunset Cliff Villa | กะตะ, ภูเก็ต | M001 | `approved` | วิลล่าริมหน้าผา วิวพระอาทิตย์ตกดินพาโนรามา |
-| H006 | Patong City Vibe Hotel | ป่าตอง, ภูเก็ต | M001 | `approved` | ใจกลางหาดป่าตอง เดินทางสะดวก |
-| H007 | Krabi Emerald Bay Resort | อ่าวนาง, กระบี่ | M002 | `approved` | ติดหาดอ่าวนาง วิวหน้าผาหินปูน |
-| H008 | Hua Hin White Sands Heritage | หัวหิน, ประจวบคีรีขันธ์ | M001 | `approved` | สไตล์โคโลเนียลติดหาดหัวหิน |
-| H009 | Samui Tropical Sanctuary | เฉวง, สุราษฎร์ธานี | M002 | `approved` | แซงชัวรีรีสอร์ทติดหาดเกาะสมุย |
-| H010 | Bangkok River Heritage Grand | เจริญกรุง, กรุงเทพฯ | M001 | `approved` | หรูริมแม่น้ำเจ้าพระยา พร้อมเรือรับส่ง BTS |
-| H011 | Khao Yai Forest Mist Eco Lodge | ปากช่อง, นครราชสีมา | M002 | `approved` | อีโค่ลอดจ์เชิงเขาใหญ่ ดูดาว |
-| H012 | Nan Misty Valley Retreat | ปัว, น่าน | M002 | `approved` | โฮมสเตย์วิวทุ่งนาและดอยภูคา |
-| H013 | Koh Chang Marine Island Resort | เกาะช้าง, ตราด | M001 | `pending` | สำหรับทดสอบการอนุมัติโรงแรมของ Admin |
-| H014 | Rayong Coastal Breeze Hotel | แกลง, ระยอง | M002 | `rejected` | สำหรับทดสอบกรณีโรงแรมถูกปฏิเสธ |
-| H015 | Ayutthaya Riverside Boutique | พระนครศรีอยุธยา, พระนครศรีอยุธยา | M001 | `suspended` | ปิดปรับปรุงระบบชั่วคราว |
+| H004 | Nimman Chic Boutique Hotel | นิมมานเหมินท์, เชียงใหม่ | M004 | `approved` | บูติกโฮเทลใจกลางนิมมานฯ |
+| H005 | Phuket Sunset Cliff Villa | กะตะ, ภูเก็ต | M005 | `approved` | วิลล่าริมหน้าผา วิวพระอาทิตย์ตกดินพาโนรามา |
+| H006 | Patong City Vibe Hotel | ป่าตอง, ภูเก็ต | M006 | `approved` | ใจกลางหาดป่าตอง เดินทางสะดวก |
+| H007 | Krabi Emerald Bay Resort | อ่าวนาง, กระบี่ | M007 | `approved` | ติดหาดอ่าวนาง วิวหน้าผาหินปูน |
+| H008 | Hua Hin White Sands Heritage | หัวหิน, ประจวบคีรีขันธ์ | M008 | `approved` | สไตล์โคโลเนียลติดหาดหัวหิน |
+| H009 | Samui Tropical Sanctuary | เฉวง, สุราษฎร์ธานี | M009 | `approved` | แซงชัวรีรีสอร์ทติดหาดเกาะสมุย |
+| H010 | Bangkok River Heritage Grand | เจริญกรุง, กรุงเทพฯ | M010 | `approved` | หรูริมแม่น้ำเจ้าพระยา พร้อมเรือรับส่ง BTS |
+| H011 | Khao Yai Forest Mist Eco Lodge | ปากช่อง, นครราชสีมา | M011 | `approved` | อีโค่ลอดจ์เชิงเขาใหญ่ ดูดาว |
+| H012 | Nan Misty Valley Retreat | ปัว, น่าน | M012 | `approved` | โฮมสเตย์วิวทุ่งนาและดอยภูคา |
+| H013 | Koh Chang Marine Island Resort | เกาะช้าง, ตราด | M013 | `pending` | สำหรับทดสอบการอนุมัติโรงแรมของ Admin |
+| H014 | Rayong Coastal Breeze Hotel | แกลง, ระยอง | M014 | `rejected` | สำหรับทดสอบกรณีโรงแรมถูกปฏิเสธ |
+| H015 | Ayutthaya Riverside Boutique | พระนครศรีอยุธยา, พระนครศรีอยุธยา | M015 | `suspended` | ปิดปรับปรุงระบบชั่วคราว |
 
 แต่ละโรงแรมมี 1–2 ประเภทห้องพัก (Room Types) และมีห้องย่อย (Units) ครบถ้วนพร้อมประวัติสถานะ
 
@@ -181,7 +184,7 @@ Schema (รวมข้อมูลการชำระเงินไว้ใ
   { "id": "MSG002", "hotelId": "H001", "userId": "U001", "sender": "manager", "text": "ได้ครับ เริ่มตั้งแต่ 12:00 น.", "sentAt": "-2h" }
 ]
 ```
-Thread = คู่ `(hotelId, userId)`. ฝั่ง User: เลือกโรงแรมที่เคยแชท/จอง; ฝั่ง Manager: รายการ thread ของทุกโรงแรมที่ตัวเองดูแล. ไม่มี realtime — ส่งแล้วเพิ่มลง list ทันที (ไม่ต้องมี auto-reply)
+Thread = คู่ `(hotelId, userId)`. ฝั่ง User: เลือกโรงแรมที่เคยแชท/จอง; ฝั่ง Manager: รายการ thread ของโรงแรมที่ตัวเองดูแล (1 โรงแรมเท่านั้น). ไม่มี realtime — ส่งแล้วเพิ่มลง list ทันที (ไม่ต้องมี auto-reply)
 
 ---
 

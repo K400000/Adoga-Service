@@ -342,6 +342,12 @@ function saveHotelForm() {
     return
   }
 
+  // 1 Manager = 1 Hotel — สร้างโรงแรมใหม่ได้เฉพาะเมื่อยังไม่มีโรงแรมในความดูแล
+  if (!editingHotelId.value && myHotels.value.length > 0) {
+    showToast('ผู้จัดการ 1 ท่านดูแลโรงแรมได้เพียง 1 แห่ง (หากมีหลายสาขา ให้เพิ่มเป็นสาขาภายในโรงแรมเดิม)', 'error')
+    return
+  }
+
   if (newImageUrl.value.trim()) {
     hotelForm.value.images.push(newImageUrl.value.trim())
     newImageUrl.value = ''
@@ -393,7 +399,7 @@ function doActivate(hotelId) {
 const stats = computed(() => [
   { label: 'รายได้รวม', value: formatPrice(revenue.value), icon: DollarSign, color: 'text-emerald-600 bg-emerald-50' },
   { label: 'การจองทั้งหมด', value: bookingsCount.value, icon: Calendar, color: 'text-indigo-600 bg-indigo-50', to: '/manager/guests' },
-  { label: 'โรงแรมของฉัน', value: myHotels.value.length, icon: Hotel, color: 'text-amber-600 bg-amber-50' },
+  { label: 'โรงแรมที่ดูแล', value: myHotels.value.length, icon: Hotel, color: 'text-amber-600 bg-amber-50' },
   { label: 'ใบขอคืนเงิน', value: myRefunds.value.length, icon: TrendingUp, color: 'text-rose-600 bg-rose-50', to: '/manager/refunds' },
 ])
 
@@ -418,7 +424,7 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
       <div class="mx-auto max-w-[1200px] px-4 md:px-8 py-8">
         <div class="flex items-center justify-between mb-8">
           <h1 class="font-display font-semibold text-2xl text-ink">ภาพรวม & แดชบอร์ด</h1>
-          <BaseButton @click="openAddHotel" variant="secondary" size="md">
+          <BaseButton v-if="!myHotels.length" @click="openAddHotel" variant="secondary" size="md">
             <Plus class="w-4 h-4 mr-1" /> เพิ่มโรงแรม
           </BaseButton>
         </div>
@@ -451,15 +457,16 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
         <!-- Hotels -->
         <section class="mb-8">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <div class="flex items-center gap-3">
-              <h2 class="font-display font-semibold text-xl text-ink">โรงแรมของฉัน</h2>
+            <div class="flex flex-wrap items-center gap-3">
+              <h2 class="font-display font-semibold text-xl text-ink">โรงแรมที่ฉันดูแล</h2>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                 {{ filteredHotels.length }} / {{ myHotels.length }} แห่ง
               </span>
+              <span class="text-[11px] text-ink-muted">1 ผู้จัดการ : 1 โรงแรม (หลายสาขาให้รวมในโรงแรมเดียวกัน)</span>
             </div>
 
             <!-- Search input -->
-            <div v-if="myHotels.length" class="relative w-full sm:w-72">
+            <div v-if="myHotels.length > 1" class="relative w-full sm:w-72">
               <Search class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 v-model="searchQuery"
@@ -676,7 +683,7 @@ import HelpFloatingButton from '../components/common/HelpFloatingButton.vue'
     <BaseModal
       :open="showHotelModal"
       @close="showHotelModal = false"
-      :title="editingHotelId ? 'แก้ไขข้อมูลโรงแรม' : 'เพิ่มโรงแรมใหม่'"
+      :title="editingHotelId ? 'แก้ไขข้อมูลโรงแรม' : 'สร้างโรงแรมแรกของคุณ'"
       size="3xl"
     >
       <!-- Modal Tab Navigation Bar -->

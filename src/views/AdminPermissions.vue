@@ -51,10 +51,10 @@ const hotels = computed(() => db['adoga_hotels'] || [])
 const managerAccounts = computed(() => {
   const managersOnly = allUsers.value.filter(u => u.role === 'manager')
   return managersOnly.map(u => {
-    // Find hotel managed by this user
-    const userHotels = hotels.value.filter(h => h.managerId === u.id)
-    const hasHotel = userHotels.length > 0
-    const hotelName = hasHotel ? userHotels.map(h => h.name).join(', ') : 'ยังไม่มีโรงแรม (รอผู้จัดการสร้าง)'
+    // 1 Manager = 1 Hotel — ผู้จัดการแต่ละคนดูแลโรงแรมได้เพียงแห่งเดียว
+    const hotel = hotels.value.find(h => h.managerId === u.id)
+    const hasHotel = Boolean(hotel)
+    const hotelName = hasHotel ? hotel.name : 'ยังไม่มีโรงแรม (รอผู้จัดการสร้าง)'
     const nickname = u.nickname || u.firstName || u.email.split('@')[0]
     
     return {
@@ -214,7 +214,7 @@ async function handleUpdateManager() {
             <h1 class="font-display font-bold text-2xl md:text-3xl text-ink">กำหนดสิทธิ์ผู้จัดการโรงแรม (Manager Permissions)</h1>
           </div>
           <p class="text-sm text-ink-muted mt-1">
-            กำหนดและให้สิทธิ์การ Login เข้าใช้งานสำหรับบัญชีผู้จัดการโรงแรม (หากไม่มีสิทธิ์ ระบบจะแจ้งเตือนทันทีเมื่อเข้าสู่ระบบ)
+            กำหนดและให้สิทธิ์การ Login เข้าใช้งานสำหรับบัญชีผู้จัดการโรงแรม (1 ผู้จัดการดูแล 1 โรงแรม — หากมีหลายสาขาให้รวมเป็นสาขาภายใต้โรงแรมเดียวกัน)
           </p>
         </div>
 

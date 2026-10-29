@@ -208,8 +208,8 @@ function doReject() {
               </button>
             </div>
 
-            <!-- Hotel Selector -->
-            <div class="sm:w-56">
+            <!-- Hotel Selector (แสดงเมื่อดูแลมากกว่า 1 โรงแรมเท่านั้น) -->
+            <div v-if="myHotels.length > 1" class="sm:w-56">
               <select
                 v-model="selectedHotelFilter"
                 class="w-full h-10 px-3 bg-slate-50/50 border border-line rounded-xl text-sm text-ink focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors cursor-pointer"

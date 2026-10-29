@@ -252,6 +252,10 @@ export function activateHotel(hotelId) {
 }
 
 export function createHotel({ managerId, name, location, description, pricePerNight, discount = 0, amenities = [], images = [], rooms = [] }) {
+  // Business rule: 1 Manager = 1 Hotel (หากหลายสาขาให้อยู่ภายใต้โรงแรมเดียวกัน ไม่สร้างโรงแรมใหม่)
+  if (managerId && (db['adoga_hotels'] || []).some(h => h.managerId === managerId)) {
+    throw new Error('ผู้จัดการ 1 ท่านดูแลโรงแรมได้เพียง 1 แห่งเท่านั้น (หากมีหลายสาขา ให้เพิ่มเป็นสาขาภายในโรงแรมเดิม)')
+  }
   const id = 'H' + Date.now()
   const hotel = {
     id,

@@ -284,8 +284,8 @@ function handleActionSelect(b, event) {
               </button>
             </div>
 
-            <!-- Hotel Selector -->
-            <div class="sm:w-56">
+            <!-- Hotel Selector (แสดงเมื่อดูแลมากกว่า 1 โรงแรมเท่านั้น) -->
+            <div v-if="myHotels.length > 1" class="sm:w-56">
               <select
                 v-model="selectedHotelFilter"
                 class="w-full h-10 px-3 bg-slate-50/50 border border-line rounded-xl text-sm text-ink focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors cursor-pointer"
@@ -312,7 +312,7 @@ function handleActionSelect(b, event) {
           </div>
 
           <!-- Empty Hotels Toggle -->
-          <div v-if="selectedHotelFilter === 'all'" class="flex items-center gap-2 self-start sm:self-auto text-xs text-ink-muted">
+          <div v-if="selectedHotelFilter === 'all' && myHotels.length > 1" class="flex items-center gap-2 self-start sm:self-auto text-xs text-ink-muted">
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"

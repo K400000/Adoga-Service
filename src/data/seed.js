@@ -4,7 +4,7 @@ import { HOTEL_IMAGES } from '../constants/images.js'
 import { addHours, addDays } from '../utils/date.js'
 import { db } from '../stores/db.js'
 
-const VERSION = 9
+const VERSION = 10
 
 function isoNow() { return new Date().toISOString() }
 function isoH(n)  { return addHours(n).toISOString() }
@@ -17,12 +17,27 @@ export function runSeed(force = false) {
   const currentSession = get('adoga_current_session') || null
 
   // ── Users ────────────────────────────────────────────────
+  // NOTE: Manager ↔ Hotel = 1:1 (ผู้จัดการ 1 คนดูแลโรงแรมได้เพียง 1 แห่ง)
+  // หากมีหลายอาคาร/หลายทำเล ให้แยกเป็น "สาขา" ภายใต้โรงแรมเดียวกัน ไม่ใช่สร้างโรงแรมใหม่
   const users = [
-    { id: 'U001', email: 'user@gmail.com',     password: 'Adoga1234', role: 'user',    firstName: 'John',    lastName: 'Doe',     nickname: 'Johnny', phone: '081-234-5678', birthdate: '1996-05-15', provider: 'local', createdAt: isoD(-30) },
-    { id: 'U002', email: 'mary@gmail.com',     password: 'Adoga1234', role: 'user',    firstName: 'Mary',    lastName: 'Smith',   nickname: 'Mary',   phone: '089-876-5432', birthdate: '1998-11-20', provider: 'local', createdAt: isoD(-25) },
-    { id: 'M001', email: 'manager@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Somchai', lastName: 'Rakthai', nickname: 'Chai',   phone: '082-111-2233', birthdate: '1988-03-10', provider: 'local', createdAt: isoD(-60) },
-    { id: 'M002', email: 'manager2@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Suda',    lastName: 'Meesuk',  nickname: 'Suda',   phone: '083-444-5566', birthdate: '1990-07-25', provider: 'local', createdAt: isoD(-55) },
-    { id: 'A001', email: 'admin@gmail.com',    password: 'Adoga1234', role: 'admin',   firstName: 'Admin',   lastName: 'Adoga',   nickname: 'Admin',  phone: '080-000-0000', birthdate: '1992-01-01', provider: 'local', createdAt: isoD(-90) },
+    { id: 'U001', email: 'user@gmail.com',      password: 'Adoga1234', role: 'user',    firstName: 'John',     lastName: 'Doe',      nickname: 'Johnny',  phone: '081-234-5678', birthdate: '1996-05-15', provider: 'local', createdAt: isoD(-30) },
+    { id: 'U002', email: 'mary@gmail.com',      password: 'Adoga1234', role: 'user',    firstName: 'Mary',     lastName: 'Smith',    nickname: 'Mary',    phone: '089-876-5432', birthdate: '1998-11-20', provider: 'local', createdAt: isoD(-25) },
+    { id: 'M001', email: 'manager@gmail.com',   password: 'Adoga1234', role: 'manager', firstName: 'Somchai',  lastName: 'Rakthai',  nickname: 'Chai',    phone: '082-111-2233', birthdate: '1988-03-10', provider: 'local', createdAt: isoD(-60) }, // H002
+    { id: 'M002', email: 'manager2@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Suda',     lastName: 'Meesuk',   nickname: 'Suda',    phone: '083-444-5566', birthdate: '1990-07-25', provider: 'local', createdAt: isoD(-55) }, // H003
+    { id: 'M003', email: 'manager3@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Anan',     lastName: 'Chaiyo',   nickname: 'Anan',    phone: '084-555-6677', birthdate: '1985-02-14', provider: 'local', createdAt: isoD(-54) }, // H001
+    { id: 'M004', email: 'manager4@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Preecha',  lastName: 'Kittisak', nickname: 'Preecha', phone: '085-666-7788', birthdate: '1987-09-08', provider: 'local', createdAt: isoD(-53) }, // H004
+    { id: 'M005', email: 'manager5@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Kanokwan', lastName: 'Srisuk',   nickname: 'Kanok',   phone: '086-777-8899', birthdate: '1991-06-19', provider: 'local', createdAt: isoD(-52) }, // H005
+    { id: 'M006', email: 'manager6@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Nattapong',lastName: 'Boonmee',  nickname: 'Nat',     phone: '087-888-9900', birthdate: '1989-12-03', provider: 'local', createdAt: isoD(-51) }, // H006
+    { id: 'M007', email: 'manager7@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Waraporn', lastName: 'Thongchai',nickname: 'Wara',    phone: '088-999-0011', birthdate: '1992-04-27', provider: 'local', createdAt: isoD(-50) }, // H007
+    { id: 'M008', email: 'manager8@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Siriporn', lastName: 'Kaewkla',  nickname: 'Siri',    phone: '089-111-2234', birthdate: '1986-08-16', provider: 'local', createdAt: isoD(-49) }, // H008
+    { id: 'M009', email: 'manager9@gmail.com',  password: 'Adoga1234', role: 'manager', firstName: 'Thanawat', lastName: 'Phromma',  nickname: 'Than',    phone: '081-222-3345', birthdate: '1993-01-22', provider: 'local', createdAt: isoD(-48) }, // H009
+    { id: 'M010', email: 'manager10@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Chutima',  lastName: 'Rattanakul',nickname:'Chutima', phone: '082-333-4456', birthdate: '1990-11-11', provider: 'local', createdAt: isoD(-47) }, // H010
+    { id: 'M011', email: 'manager11@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Kittipong',lastName: 'Saelim',   nickname: 'Kitt',    phone: '083-444-5567', birthdate: '1984-05-05', provider: 'local', createdAt: isoD(-46) }, // H011
+    { id: 'M012', email: 'manager12@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Nutcha',   lastName: 'Wongkham', nickname: 'Nutcha',  phone: '084-555-6678', birthdate: '1995-03-30', provider: 'local', createdAt: isoD(-45) }, // H012
+    { id: 'M013', email: 'manager13@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Phumin',   lastName: 'Chanthara',nickname: 'Phumin',  phone: '085-666-7789', birthdate: '1988-10-09', provider: 'local', createdAt: isoD(-44) }, // H013
+    { id: 'M014', email: 'manager14@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Ratchanee',lastName: 'Panyarat', nickname: 'Rat',     phone: '086-777-8890', birthdate: '1991-07-07', provider: 'local', createdAt: isoD(-43) }, // H014
+    { id: 'M015', email: 'manager15@gmail.com', password: 'Adoga1234', role: 'manager', firstName: 'Sarawut',  lastName: 'Thepsiri', nickname: 'Sarawut', phone: '087-888-9901', birthdate: '1986-12-25', provider: 'local', createdAt: isoD(-42) }, // H015
+    { id: 'A001', email: 'admin@gmail.com',     password: 'Adoga1234', role: 'admin',   firstName: 'Admin',    lastName: 'Adoga',    nickname: 'Admin',   phone: '080-000-0000', birthdate: '1992-01-01', provider: 'local', createdAt: isoD(-90) },
   ]
 
   // ── Hotels ───────────────────────────────────────────────
@@ -31,7 +46,7 @@ export function runSeed(force = false) {
 
   const hotels = [
     {
-      id: 'H001', managerId: 'M001', name: 'Chonburi Sea View', location: 'บางแสน, ชลบุรี',
+      id: 'H001', managerId: 'M003', name: 'Chonburi Sea View', location: 'บางแสน, ชลบุรี',
       description: 'รีสอร์ทติดทะเลบางแสน วิวทะเลสวยงาม บรรยากาศสงบ เหมาะสำหรับการพักผ่อนของครอบครัวและคู่รัก',
       pricePerNight: 1500, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H001, amenities: ['สระว่ายน้ำ', 'WiFi ฟรี', 'อาหารเช้า', 'ที่จอดรถ'], rating: 4.6,
@@ -73,7 +88,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H004', managerId: 'M002', name: 'Nimman Chic Boutique Hotel', location: 'นิมมานเหมินท์, เชียงใหม่',
+      id: 'H004', managerId: 'M004', name: 'Nimman Chic Boutique Hotel', location: 'นิมมานเหมินท์, เชียงใหม่',
       description: 'โรงแรมบูติกสุดชิคใจกลางถนนนิมมานฯ ตกแต่งสไตล์ Minimal Modern เดินไปคาเฟ่และร้านอาหารชื่อดังได้ง่ายดาย',
       pricePerNight: 1650, discount: 5, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H004, amenities: ['WiFi ความเร็วสูง', 'คาเฟ่ & บาร์', 'ฟิตเนส', 'ที่จอดรถ', 'บริการรับส่งสนามบิน'], rating: 4.5,
@@ -87,7 +102,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H005', managerId: 'M001', name: 'Phuket Sunset Cliff Villa', location: 'กะตะ, ภูเก็ต',
+      id: 'H005', managerId: 'M005', name: 'Phuket Sunset Cliff Villa', location: 'กะตะ, ภูเก็ต',
       description: 'วิลล่าหรูริมหน้าผาชมวิวพระอาทิตย์ตกดินพาโนรามา พร้อมสระว่ายน้ำส่วนตัว Infinite Pool เหนือระดับ',
       pricePerNight: 4900, discount: 12, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H005, amenities: ['สระว่ายน้ำส่วนตัว Infinite Pool', 'บริการบัตเลอร์ 24 ชม.', 'ฟิตเนส & สปา', 'บาร์ริมทะเล', 'อาหารเช้าลอยน้ำ'], rating: 4.9,
@@ -101,7 +116,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H006', managerId: 'M001', name: 'Patong City Vibe Hotel', location: 'ป่าตอง, ภูเก็ต',
+      id: 'H006', managerId: 'M006', name: 'Patong City Vibe Hotel', location: 'ป่าตอง, ภูเก็ต',
       description: 'โรงแรมทันสมัยใจกลางหาดป่าตอง ใกล้หาดและห้างสรรพสินค้า Jungceylon เดินทางสะดวกสบาย',
       pricePerNight: 1350, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H006, amenities: ['สระว่ายน้ำดาดฟ้า', 'WiFi ฟรี', 'ห้องอาหารนานาชาติ', 'ฟิตเนส', 'ที่จอดรถ'], rating: 4.2,
@@ -115,7 +130,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H007', managerId: 'M002', name: 'Krabi Emerald Bay Resort', location: 'อ่าวนาง, กระบี่',
+      id: 'H007', managerId: 'M007', name: 'Krabi Emerald Bay Resort', location: 'อ่าวนาง, กระบี่',
       description: 'รีสอร์ทติดหาดอ่าวนาง โอบล้อมด้วยภูเขาหินปูนธรรมชาติ บริการทริปเรือสปีดโบ๊ทไปเกาะพีพีและอ่าวไร่เลย์',
       pricePerNight: 3200, discount: 15, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H007, amenities: ['สระว่ายน้ำติดชายหาด', 'เรือคายัคฟรี', 'คิดส์คลับ', 'สปาครบวงจร', 'บาร์ค็อกเทล'], rating: 4.8,
@@ -129,7 +144,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H008', managerId: 'M001', name: 'Hua Hin White Sands Heritage', location: 'หัวหิน, ประจวบคีรีขันธ์',
+      id: 'H008', managerId: 'M008', name: 'Hua Hin White Sands Heritage', location: 'หัวหิน, ประจวบคีรีขันธ์',
       description: 'ที่พักสไตล์โคโลเนียลติดหาดหัวหิน สวนร่มรื่น สระว่ายน้ำทอดยาวสู่หาดทรายขาว เงียบสงบระดับพรีเมียม',
       pricePerNight: 2600, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H008, amenities: ['สระว่ายน้ำริมหาด', 'สปาไทย', 'อาหารเช้าซีฟู้ด', 'ที่จอดรถ', 'สวนหย่อมสไตล์อังกฤษ'], rating: 4.6,
@@ -143,7 +158,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H009', managerId: 'M002', name: 'Samui Tropical Sanctuary', location: 'เฉวง, สุราษฎร์ธานี',
+      id: 'H009', managerId: 'M009', name: 'Samui Tropical Sanctuary', location: 'เฉวง, สุราษฎร์ธานี',
       description: 'แซงชัวรีรีสอร์ทบนเกาะสมุย ล้อมรอบด้วยต้นมะพร้าวและชายหาดส่วนตัว พร้อมบริการโยคะรับอรุณ',
       pricePerNight: 3800, discount: 18, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H009, amenities: ['สระว่ายน้ำลากูน', 'โยคะริมหาด', 'WiFi ฟรี', 'Beach Club', 'สปาอโรมา'], rating: 4.8,
@@ -157,7 +172,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H010', managerId: 'M001', name: 'Bangkok River Heritage Grand', location: 'เจริญกรุง, กรุงเทพฯ',
+      id: 'H010', managerId: 'M010', name: 'Bangkok River Heritage Grand', location: 'เจริญกรุง, กรุงเทพฯ',
       description: 'โรงแรมหรูริมแม่น้ำเจ้าพระยา ดื่มด่ำวิวเมืองและวัดอรุณฯ ยามค่ำคืน พร้อมเรือรับส่ง BTS สะพานตากสินฟรี',
       pricePerNight: 3400, discount: 10, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H010, amenities: ['สระว่ายน้ำริมแม่น้ำ', 'ห้องอาหาร Fine Dining', 'Sky Rooftop Bar', 'ฟิตเนส & ซาวน่า', 'เรือข้ามฟากส่วนตัว'], rating: 4.7,
@@ -171,7 +186,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H011', managerId: 'M002', name: 'Khao Yai Forest Mist Eco Lodge', location: 'ปากช่อง, นครราชสีมา',
+      id: 'H011', managerId: 'M011', name: 'Khao Yai Forest Mist Eco Lodge', location: 'ปากช่อง, นครราชสีมา',
       description: 'อีโค่ลอดจ์เชิงเขาใหญ่ อากาศเย็นสบายตลอดปี ใกล้อุทยานแห่งชาติเขาใหญ่และไร่องุ่น พร้อมลานก่อกองไฟดูดาว',
       pricePerNight: 2100, discount: 8, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H011, amenities: ['แคมป์ไฟและบาร์บีคิว', 'สระว่ายน้ำกลางแจ้ง', 'จักรยานเสือภูเขาให้เช่า', 'WiFi ฟรี', 'ลานดูดาว'], rating: 4.6,
@@ -185,7 +200,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H012', managerId: 'M002', name: 'Nan Misty Valley Retreat', location: 'ปัว, น่าน',
+      id: 'H012', managerId: 'M012', name: 'Nan Misty Valley Retreat', location: 'ปัว, น่าน',
       description: 'โฮมสเตย์ระดับพรีเมียมกลางทุ่งนาปัว วิวดอยภูคา สัมผัสวิถีชีวิตสโลว์ไลฟ์ สายหมอกและกาแฟดริปยามเช้า',
       pricePerNight: 1750, discount: 0, status: 'approved', rejectReason: null,
       images: HOTEL_IMAGES.H012, amenities: ['ระเบียงชมวิวทุ่งนา 360°', 'เซ็ตอาหารพื้นบ้านน่าน', 'WiFi ฟรี', 'จักรยานฟรี'], rating: 4.8,
@@ -199,7 +214,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H013', managerId: 'M001', name: 'Koh Chang Marine Island Resort', location: 'เกาะช้าง, ตราด',
+      id: 'H013', managerId: 'M013', name: 'Koh Chang Marine Island Resort', location: 'เกาะช้าง, ตราด',
       description: 'รีสอร์ทติดทะเลฝั่งอ่าวไทย หาดคลองพร้าว น้ำใส ปะการังสมบูรณ์ (รอการอนุมัติเข้าระบบจาก Admin)',
       pricePerNight: 2400, discount: 15, status: 'pending', rejectReason: null,
       images: HOTEL_IMAGES.H013, amenities: ['อุปกรณ์ดำน้ำตื้น', 'สระว่ายน้ำกลางแจ้ง', 'WiFi ฟรี', 'เรือคายัค'], rating: 4.4,
@@ -213,7 +228,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H014', managerId: 'M002', name: 'Rayong Coastal Breeze Hotel', location: 'แกลง, ระยอง',
+      id: 'H014', managerId: 'M014', name: 'Rayong Coastal Breeze Hotel', location: 'แกลง, ระยอง',
       description: 'โรงแรมริมหาดแม่พิมพ์ ระยอง ใกล้สวนผลไม้และตลาดอาหารทะเลสด',
       pricePerNight: 1600, discount: 0, status: 'rejected', rejectReason: 'ข้อมูลใบอนุญาตโรงแรมไม่ครบถ้วนและภาพถ่ายไม่ชัดเจน กรุณาแก้ไข',
       images: HOTEL_IMAGES.H014, amenities: ['สระว่ายน้ำ', 'อาหารเช้า', 'ที่จอดรถ'], rating: 3.7,
@@ -226,7 +241,7 @@ export function runSeed(force = false) {
       ],
     },
     {
-      id: 'H015', managerId: 'M001', name: 'Ayutthaya Riverside Boutique', location: 'พระนครศรีอยุธยา, พระนครศรีอยุธยา',
+      id: 'H015', managerId: 'M015', name: 'Ayutthaya Riverside Boutique', location: 'พระนครศรีอยุธยา, พระนครศรีอยุธยา',
       description: 'ที่พักริมแม่น้ำป่าสัก ใกล้โบราณสถานวัดมหาธาตุ ตกแต่งสไตล์ไทยโมเดิร์น (ปิดปรับปรุงระบบชั่วคราว)',
       pricePerNight: 1950, discount: 0, status: 'suspended', rejectReason: null,
       images: HOTEL_IMAGES.H015, amenities: ['สระว่ายน้ำริมน้ำ', 'ร้านอาหารริมน้ำ', 'WiFi ฟรี', 'ที่จอดรถ'], rating: 4.3,
@@ -289,7 +304,7 @@ export function runSeed(force = false) {
   // ── Messages (Separated per Role & Gmail) ──────────────────
   const messages = [
     // ── 1. User John (user@gmail.com / U001) Messages ────────
-    // Thread: U001 ↔ Manager Somchai (manager@gmail.com / M001) at H001
+    // Thread: U001 ↔ Manager Anan (manager3@gmail.com / M003) at H001
     { id:'MSG001', hotelId:'H001', userId:'U001', sender:'user',    text:'สอบถามเรื่อง Check-in ก่อนเวลาได้ไหมครับ', sentAt: isoH(-4), unread: false },
     { id:'MSG002', hotelId:'H001', userId:'U001', sender:'manager', text:'สวัสดีครับ ขอบคุณที่จองกับเรา ทางโรงแรมยินดีให้บริการครับ (สามารถเช็คอินล่วงหน้าได้ตั้งแต่ 12:00 น.)', sentAt: isoH(-3), unread: true },
 
@@ -311,7 +326,7 @@ export function runSeed(force = false) {
     { id:'MSG010', hotelId:'H_ADMIN', userId:'U002', sender:'admin', text:'สวัสดีครับคุณ Mary หากยกเลิกก่อนวันเข้าพักตามนโยบาย จะได้รับเงินคืนภายใน 3-5 วันทำการผ่านช่องทางเดิมที่ชำระเข้ามาครับ', sentAt: isoH(-12), unread: false },
 
     // ── 3. Manager Somchai (manager@gmail.com / M001) ↔ Admin Support ──
-    { id:'MSG011', hotelId:'H_ADMIN', userId:'M001', sender:'user',  text:'สวัสดีครับแอดมิน สอบถามเรื่องรอบการโอนเงินรายได้โรงแรม Chonburi Sea View ประจำสัปดาห์นี้ครับ', sentAt: isoD(-2), unread: false },
+    { id:'MSG011', hotelId:'H_ADMIN', userId:'M001', sender:'user',  text:'สวัสดีครับแอดมิน สอบถามเรื่องรอบการโอนเงินรายได้โรงแรม Pattaya Beach Resort & Spa ประจำสัปดาห์นี้ครับ', sentAt: isoD(-2), unread: false },
     { id:'MSG012', hotelId:'H_ADMIN', userId:'M001', sender:'admin', text:'สวัสดีครับคุณ Somchai ทางทีมการเงินสรุปยอดเรียบร้อยแล้ว จะดำเนินการโอนเข้าบัญชีที่ผูกไว้ในวันศุกร์นี้ครับ ขอบคุณครับ', sentAt: isoD(-1), unread: false },
   ]
 

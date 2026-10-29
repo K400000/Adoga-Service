@@ -17,7 +17,7 @@
 | `05-user-booking.png` | Flow จอง + นับถอยหลัง 12 ชม. + Modal ชำระเงิน | `views/BookingFlow.vue` | `StatusStepper` (Booking) + `StatusBadge` (Payment); Modal: `verifying` → `success`/`failed` (ปุ่ม "ชำระใหม่") |
 | `06-user-message.png` | หน้าต่างแชทฝั่ง User ติดต่อโรงแรม | `views/UserMessage.vue` | — |
 | `07-user-setting.png` | โปรไฟล์ (แก้ชื่อเล่น) + **ประวัติการจอง** + ปุ่ม Sign Out | `views/UserProfile.vue` | การ์ดแต่ละรายการ: `StatusBadge` Booking + Payment + (ถ้ามี) ใบขอคืนเงิน; ปุ่ม "ขอคืนเงิน" ตาม `enableRefund` |
-| `08-manager-home.png` | Dashboard สรุปยอด + จัดการโรงแรม (ส่งอนุมัติ/แก้ไข/เปิด-ปิด) + จัดการห้อง + ใบขอคืนเงิน | `views/ManagerDashboard.vue` | `StatusBanner` ต่อโรงแรม (Hotel); `StatusBadge` ต่อห้อง (Unit) + ปุ่ม ปรับปรุง/พร้อมใช้งาน; ตารางใบขอคืนเงิน (Refund) พร้อมปุ่ม ตรวจสอบ / อนุมัติ / ปฏิเสธ |
+| `08-manager-home.png` | Dashboard สรุปยอด + จัดการโรงแรม (ส่งอนุมัติ/แก้ไข/เปิด-ปิด) + จัดการห้อง + ใบขอคืนเงิน — **1 ผู้จัดการ : 1 โรงแรม** (หลายสาขาให้รวมในโรงแรมเดียวกัน) | `views/ManagerDashboard.vue` | `StatusBanner` ต่อโรงแรม (Hotel); `StatusBadge` ต่อห้อง (Unit) + ปุ่ม ปรับปรุง/พร้อมใช้งาน; ตารางใบขอคืนเงิน (Refund) พร้อมปุ่ม ตรวจสอบ / อนุมัติ / ปฏิเสธ |
 | `09-manager-message.png` | หน้าต่างแชทฝั่ง Manager (ตอบ User) | `views/ManagerMessage.vue` | — |
 | `10-manager-guests.png` | จัดการ Check-in / Check-out | `views/ManagerGuestList.vue` | `StatusBadge` Booking + badge รอง "เข้าพักแล้ว"; ปุ่ม Check-in (confirmed & ยังไม่เข้าพัก) / Check-out (เข้าพักแล้ว) |
 | `11-admin-dashboard.png` | ภาพรวมสถิติ กราฟ 24h/Month/Year (Chart.js) | `views/AdminDashboard.vue` | จำนวนโรงแรมแยกตาม Hotel status |
