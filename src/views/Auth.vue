@@ -16,7 +16,6 @@ const router = useRouter()
 const route = useRoute()
 
 const tab = ref('login') // login | register
-const step = ref(1) // register step 1 | 2
 const loading = ref(false)
 const globalError = ref('')
 const loginRequired = computed(() => route.query.reason === 'login_required')
@@ -114,7 +113,7 @@ const loginPassword = ref('')
 const loginError = ref('')
 const showLoginPwd = ref(false)
 
-// Register form step 1
+// Register form
 const regEmail = ref('')
 const regPassword = ref('')
 const regConfirm = ref('')
@@ -125,10 +124,6 @@ const regPhone = ref('')
 const regBirthdate = ref('')
 const showRegPwd = ref(false)
 const regErrors = ref({})
-
-// Step 2 — role
-const regRole = ref('')
-const roleError = ref('')
 
 const pwdRules = computed(() => getPasswordRules(regPassword.value))
 
@@ -170,7 +165,7 @@ async function doLogin() {
   else router.push('/home')
 }
 
-function validateStep1() {
+function validateRegisterForm() {
   const users = db['adoga_users'] || []
   const errors = {}
   const emailR = validateEmailUnique(regEmail.value, users)
@@ -188,16 +183,8 @@ function validateStep1() {
   return Object.keys(errors).length === 0
 }
 
-function goStep2() {
-  if (validateStep1()) step.value = 2
-}
-
 async function doRegister() {
-  if (!regRole.value) {
-    roleError.value = 'กรุณาเลือกบทบาท'
-    return
-  }
-  roleError.value = ''
+  if (!validateRegisterForm()) return
   loading.value = true
   await new Promise(r => setTimeout(r, 300))
   const res = register({
@@ -208,7 +195,8 @@ async function doRegister() {
     nickname: regNickname.value,
     phone: regPhone.value,
     birthdate: regBirthdate.value,
-    role: regRole.value,
+    // Registration is always for regular users; manager/admin are assigned separately
+    role: 'user',
   })
   loading.value = false
   if (!res.ok) {
@@ -217,7 +205,6 @@ async function doRegister() {
   }
   showToast('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ', 'success')
   tab.value = 'login'
-  step.value = 1
   loginEmail.value = regEmail.value
   loginPassword.value = ''
   globalError.value = ''
@@ -229,14 +216,7 @@ function mockGoogle() {
   regPhone.value = `08${Math.floor(10000000 + Math.random() * 90000000)}`
   regBirthdate.value = '2000-01-01'
   tab.value = 'register'
-  step.value = 1
 }
-
-const ROLES = [
-  { key: 'user', label: 'ผู้ใช้ทั่วไป (User)', desc: 'ค้นหาและจองที่พักในชลบุรี' },
-  { key: 'manager', label: 'ผู้จัดการโรงแรม (Manager)', desc: 'จัดการข้อมูลโรงแรม ห้องพัก และแขก' },
-  { key: 'admin', label: 'ผู้ดูแลระบบ (Admin)', desc: 'อนุมัติโรงแรมและดูแลระบบภาพรวม' },
-]
 </script>
 
 <template>
@@ -272,12 +252,12 @@ const ROLES = [
         <div class="flex bg-slate-100/90 rounded-full p-1 mb-6 border border-slate-200/50">
           <button
             type="button"
-            @click="tab = 'login'; step = 1"
+            @click="tab = 'login'"
             :class="['flex-1 h-9 rounded-full text-sm font-medium transition-all', tab === 'login' ? 'bg-indigo-600 text-white shadow-sm' : 'text-ink-muted hover:text-ink']"
           >เข้าสู่ระบบ</button>
           <button
             type="button"
-            @click="tab = 'register'; step = 1"
+            @click="tab = 'register'"
             :class="['flex-1 h-9 rounded-full text-sm font-medium transition-all', tab === 'register' ? 'bg-indigo-600 text-white shadow-sm' : 'text-ink-muted hover:text-ink']"
           >สมัครสมาชิก</button>
         </div>
@@ -286,23 +266,7 @@ const ROLES = [
         <div v-if="globalError" class="mb-4 p-3 rounded-xl bg-rose-50 ring-1 ring-rose-200 text-sm text-rose-700">
           {{ globalError }}
         </div>
-
-        <!-- Quick Demo Accounts (Login only) -->
-        <div v-if="tab === 'login'" class="mb-5 p-3 rounded-2xl bg-indigo-50/60 border border-indigo-100">
-          <p class="text-xs text-indigo-900 font-semibold mb-2">บัญชีทดสอบระบบ (คลิกเพื่อกรอกอัตโนมัติ)</p>
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="d in DEMOS"
-              :key="d.label"
-              type="button"
-              @click="fillDemo(d)"
-              class="text-xs px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all font-medium shadow-xs"
-            >
-              {{ d.label }}
-            </button>
-          </div>
-        </div>
-
+        
         <!-- LOGIN FORM -->
         <form v-if="tab === 'login'" @submit.prevent="doLogin" class="flex flex-col gap-4">
           <!-- Google mock button -->
@@ -354,8 +318,7 @@ const ROLES = [
 
         <!-- REGISTER FORM -->
         <div v-else>
-          <!-- Step 1 -->
-          <form v-if="step === 1" @submit.prevent="goStep2" class="flex flex-col gap-3.5">
+          <form @submit.prevent="doRegister" class="flex flex-col gap-3.5">
 
             <!-- Google mock button -->
             <button
@@ -407,38 +370,8 @@ const ROLES = [
 
             <BaseInput label="ยืนยันรหัสผ่าน" :type="showRegPwd ? 'text' : 'password'" v-model="regConfirm" placeholder="••••••••" required :error="regErrors.confirm" />
 
-            <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2">ถัดไป →</BaseButton>
+            <BaseButton type="submit" variant="secondary" size="lg" class="w-full mt-2" :loading="loading">ยืนยันสมัครสมาชิก</BaseButton>
           </form>
-
-          <!-- Step 2 — Role -->
-          <div v-else class="flex flex-col gap-4">
-            <div class="flex items-center justify-between text-xs font-semibold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg">
-              <span>ขั้นตอนที่ 2/2 — เลือกประเภทบทบาทผู้ใช้งาน</span>
-              <span class="text-slate-400">100%</span>
-            </div>
-            <div class="flex flex-col gap-2.5">
-              <button
-                v-for="r in ROLES"
-                :key="r.key"
-                @click="regRole = r.key"
-                type="button"
-                :class="[
-                  'w-full p-3.5 rounded-2xl border-2 text-left transition-all',
-                  regRole === r.key
-                    ? 'border-indigo-600 bg-indigo-50/80 shadow-xs ring-1 ring-indigo-500'
-                    : 'border-line hover:border-indigo-200 bg-white'
-                ]"
-              >
-                <p :class="['font-semibold text-sm', regRole === r.key ? 'text-indigo-700' : 'text-ink']">{{ r.label }}</p>
-                <p class="text-xs text-ink-muted mt-0.5">{{ r.desc }}</p>
-              </button>
-            </div>
-            <p v-if="roleError" class="text-sm text-rose-700 bg-rose-50 p-2.5 rounded-xl">{{ roleError }}</p>
-            <div class="flex gap-3 mt-1">
-              <BaseButton @click="step = 1" variant="outline" size="md" class="flex-1">← ย้อนกลับ</BaseButton>
-              <BaseButton @click="doRegister" variant="secondary" size="md" :loading="loading" class="flex-1">ยืนยันสมัครสมาชิก</BaseButton>
-            </div>
-          </div>
         </div>
       </div>
     </div>
